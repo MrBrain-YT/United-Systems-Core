@@ -28,4 +28,7 @@ class PackageManager():
         self.list.add_package_to_list(name=name)
         os.makedirs(f"packages/{name}")
 
-    
+    def get_list(self) -> str:
+        with open("__packages", "r") as file:
+            text = file.read()
+        return text 
