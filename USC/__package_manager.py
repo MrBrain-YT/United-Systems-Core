@@ -1,13 +1,13 @@
 import os
 import time
-from typing import Any
 
+from __list_work import ListWorker
 from progress.bar import ShadyBar
 
 class PackageManager():
     
     def __init__(self) -> None:
-        pass
+        self.list = ListWorker(path="__packages")
     
     def install(self, name:str) -> None:
         self.create(name=name)
@@ -21,7 +21,11 @@ class PackageManager():
             file.write("package installed")
             
     def uninstall(self, name:str) -> None:
-        os.remove(f"packages/{name.lower()}.pkg")
+        self.list.remove_package_from_list(name=name)
+        os.rmdir(f"packages/{name}")
         
     def create(self, name:str) -> None:
+        self.list.add_package_to_list(name=name)
         os.makedirs(f"packages/{name}")
+
+    
