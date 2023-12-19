@@ -23,7 +23,7 @@ match sys_args[0]:
         Manager.create(name=sys_args[1])
     
     case "list":
-        pass
+        print(Manager.get_list())
     
     case "update":
         pass
