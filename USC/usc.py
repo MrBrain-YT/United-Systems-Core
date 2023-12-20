@@ -7,7 +7,7 @@ from pyfiglet import Figlet
 
 from __package_manager import PackageManager
 
-sys_args = sys.argv[1::]
+
 Manager = PackageManager()
 config = configparser.ConfigParser()
 
@@ -18,6 +18,8 @@ hello_message = preview_text.renderText('USC')
 # Get server config
 # config.read('run.ini')
 # server_config = config['SERVER']
+
+sys_args = sys.argv[1::]
 
 if len(sys.argv) > 1:
     match sys_args[0]:
@@ -35,6 +37,7 @@ if len(sys.argv) > 1:
             Manager.create(name=sys_args[1])
         
         case "list":
+            print("name | version")
             print(Manager.get_list())
         
         case "update":
@@ -61,8 +64,8 @@ if len(sys.argv) > 1:
             print(preview_text.renderText('V-0.0.1'))
             print(preview_text.renderText('------'))
             
-
         case _:
             print("Unknown command")
 else:
     print(hello_message)
+    print("To find out more use '-h'")

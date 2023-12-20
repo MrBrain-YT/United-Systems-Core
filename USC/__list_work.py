@@ -1,19 +1,19 @@
-
+import re
 
 class ListWorker():
 
     def __init__(self, path:str) -> None:
         self.__path = path
 
-    def add_package_to_list(self, name:str) -> None:
+    def add_package_to_list(self, name:str, version:str) -> None:
         with open(self.__path, "r") as file:
             text = file.read()
         if text != "":     
             with open(self.__path, "a") as file:
-                file.write("\n" + name)
+                file.write("\n" + name + f"=={version}")
         else:
             with open(self.__path, "a") as file:
-                file.write(name)
+                file.write(name + f"=={version}")
 
     def remove_package_from_list(self, name:str) -> None:
         with open(self.__path, "r") as file:
@@ -22,7 +22,7 @@ class ListWorker():
             for line in text:
                 if line == "\n":
                     continue
-                elif line == f"{name}\n" or line == name:
+                elif re.search(name+r"==\d.\d.\d", string=line):
                     continue
                 else:
                     lines.append(line)

@@ -1,6 +1,8 @@
 import os
 import time
+import re
 import configparser
+import shutil
 
 from __list_work import ListWorker
 from progress.bar import ShadyBar
@@ -11,22 +13,32 @@ class PackageManager():
         self.list = ListWorker(path=f"{os.path.dirname(os.path.abspath(__file__))}/__packages")
     
     def install(self, name:str) -> None:
-        self.create(name=name)
-        name = name.lower()
-        with ShadyBar('Installing', max=20) as bar:
-            for i in range(20):
-                time.sleep(0.5)
-                bar.next()
-                   
-        with open(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}/{name}.pkg", "w") as file:
-            file.write("package installed")
+        with open(f"{os.path.dirname(os.path.abspath(__file__))}/__packages", "r") as file:
+            text = file.readlines()
+            lines = []
+            for line in text:
+                if re.search(name+r"==\d.\d.\d", string=line):
+                    print("Package is already present")
+                    break
+            else:
+                name = name.lower()
+                with ShadyBar('Installing', max=20) as bar:
+                    for i in range(20):
+                        time.sleep(0.5)
+                        bar.next()
+                        
+                os.makedirs(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}")
+                with open(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}/{name}.pkg", "w") as file:
+                    file.write("package installed")
+                self.list.add_package_to_list(name=name, version="1.0.0")
+                print(f"Library {name} successful installed.")
             
     def uninstall(self, name:str) -> None:
         self.list.remove_package_from_list(name=name)
-        os.rmdir(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}")
+        shutil.rmtree(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}")
         
     def create(self, name:str) -> None:
-        self.list.add_package_to_list(name=name)
+        self.list.add_package_to_list(name=name, version="0.0.1")
         os.makedirs(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}")
 
     def get_list(self) -> str:
@@ -36,7 +48,7 @@ class PackageManager():
     
     def set_server_config(self, server_info:str, is_my_server:bool) -> None:
         config = configparser.ConfigParser()
-        config.read('run.ini')
+        config.read(f'{os.path.dirname(os.path.abspath(__file__))}/run.ini')
         if is_my_server:
             host, port = server_info.split(":")
             config['SERVER'] = {'host': host,
