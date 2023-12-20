@@ -1,5 +1,6 @@
 import os
 import time
+import configparser
 
 from __list_work import ListWorker
 from progress.bar import ShadyBar
@@ -32,3 +33,19 @@ class PackageManager():
         with open("__packages", "r") as file:
             text = file.read()
         return text 
+    
+    def set_server_config(self, server_info:str, is_my_server:bool) -> None:
+        config = configparser.ConfigParser()
+        config.read('run.ini')
+        if is_my_server:
+            host, port = server_info.split(":")
+            config['SERVER'] = {'host': host,
+                                'port': port}
+            with open('run.ini', 'w') as configfile:
+                config.write(configfile)
+        else:
+            host, port = server_info.split(":")
+            config['DOWNLOAD'] = {'host': host,
+                                'port': port}
+            with open('run.ini', 'w') as configfile:
+                config.write(configfile)

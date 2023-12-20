@@ -1,11 +1,17 @@
 """ main starting file """
 
 import sys
+import configparser
 
 from __package_manager import PackageManager
 
 sys_args = sys.argv[1::]
 Manager = PackageManager()
+config = configparser.ConfigParser()
+
+# Get server config
+config.read('run.ini')
+server_config = config['SERVER']
 
 
 match sys_args[0]:
@@ -35,7 +41,10 @@ match sys_args[0]:
         pass
     
     case "server":
-        pass
+        Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
+
+    case "config":
+        Manager.set_server_config(server_info=sys_args[1], is_my_server=True)
     
     case "-h":
         pass
