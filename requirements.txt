@@ -1,1 +1,2 @@
 progress==1.6
+pyfiglet==1.0.2

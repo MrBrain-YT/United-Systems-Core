@@ -8,7 +8,7 @@ from progress.bar import ShadyBar
 class PackageManager():
     
     def __init__(self) -> None:
-        self.list = ListWorker(path="__packages")
+        self.list = ListWorker(path=f"{os.path.dirname(os.path.abspath(__file__))}/__packages")
     
     def install(self, name:str) -> None:
         self.create(name=name)
@@ -18,19 +18,19 @@ class PackageManager():
                 time.sleep(0.5)
                 bar.next()
                    
-        with open(f"packages/{name}/{name}.pkg", "w") as file:
+        with open(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}/{name}.pkg", "w") as file:
             file.write("package installed")
             
     def uninstall(self, name:str) -> None:
         self.list.remove_package_from_list(name=name)
-        os.rmdir(f"packages/{name}")
+        os.rmdir(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}")
         
     def create(self, name:str) -> None:
         self.list.add_package_to_list(name=name)
-        os.makedirs(f"packages/{name}")
+        os.makedirs(f"{os.path.dirname(os.path.abspath(__file__))}/packages/{name}")
 
     def get_list(self) -> str:
-        with open("__packages", "r") as file:
+        with open(f"{os.path.dirname(os.path.abspath(__file__))}/__packages", "r") as file:
             text = file.read()
         return text 
     
@@ -49,3 +49,8 @@ class PackageManager():
                                 'port': port}
             with open('run.ini', 'w') as configfile:
                 config.write(configfile)
+                
+    def refresh(self) -> None:
+        files = os.listdir(f"{os.path.dirname(os.path.abspath(__file__))}/packages")
+        with open(f"{os.path.dirname(os.path.abspath(__file__))}/__packages", "w") as file:
+            file.write("\n".join(files))
