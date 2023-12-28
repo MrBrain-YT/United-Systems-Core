@@ -11,6 +11,7 @@ import tarfile
 import stat
 from subprocess import call
 
+
 import git
 from terminaltables import AsciiTable
 from progress.bar import ShadyBar
@@ -21,37 +22,42 @@ class PackageManager():
     
     def __init__(self) -> None:
         self.current_directory = os.path.dirname(os.path.abspath(__file__))
-        self.list = ListWorker(path=f"{self.current_directory}/__packages")
+        self.list = ListWorker()
     
     def install(self, name:str) -> None:
         name = name.lower()
         
-        # Get package
-        data = {
-            "package_name" : name
-            }
-        responce = requests.post(url="http://127.0.0.1:5000/package", data=data)
-        with open(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz', 'wb') as file:
-            file.write(responce.content)
-        
-        # extracting file
-        dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"
-        file = tarfile.open(f"{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz") 
-        file.extractall(dir_path) 
-        file.close()
-        os.remove(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz')
-        
-        # Get properties from package.ini
-        package_config = configparser.ConfigParser()
-        package_config.read(f"{dir_path}/{name}/package.ini")
-        
-        
-        with ShadyBar('Installing', max=20) as bar:
-            for i in range(20):
-                time.sleep(0.1)
-                bar.next()
+        if not self.list.check_exits(name):
+            # Get package
+            data = {
+                "package_name" : name
+                }
+            responce = requests.post(url="http://127.0.0.1:5000/package", data=data)
+            if responce.status_code == 200:
+                with open(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz', 'wb') as file:
+                    file.write(responce.content)
                 
-        self.list.add_package_to_list(package_config=package_config)
+                # extracting file
+                dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"
+                file = tarfile.open(f"{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz") 
+                file.extractall(dir_path) 
+                file.close()
+                os.remove(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz')
+                
+                # Get properties from package.ini
+                package_config = configparser.ConfigParser()
+                package_config.read(f"{dir_path}/{name}/package.ini")
+                
+                with ShadyBar('Installing', max=20) as bar:
+                    for i in range(20):
+                        time.sleep(0.1)
+                        bar.next()
+                        
+                self.list.add_package_to_list(package_config=package_config)
+            else:
+                print("Package not found in server")
+        else:
+            print("Package alredy exist")
     
     @staticmethod
     def on_rm_error(func, path, exc_info):
@@ -61,45 +67,49 @@ class PackageManager():
         
     def install_git(self, url:str) -> None:
         error = False
-        
-        
-                
+ 
         dir_path = f'{os.path.dirname(os.path.abspath(__file__))}/temp/git'
-        # Клонируем репозиторий по указанному URL
-        git.Repo.clone_from(url, dir_path)
-        
-        # Check package
-        package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")][1]}"
-        if os.path.exists(f"{package_dir_path}/package.ini"):
-            config = configparser.ConfigParser()
-            config.read(f"{package_dir_path}/package.ini")
-            package_name = config["INFO"].get("name")
-            package_version = config["INFO"].get("version")
-            if package_name and package_version != None:
-                pattern = r"[!@#$%^&*(),.?\":{}|<>]"
-                if not re.search(pattern, package_name) and not re.search(pattern, package_version):
-                    # add package to list
-                    config_file = f"{os.path.dirname(os.path.abspath(__file__))}/packages/packages.ini"
-                    packages_config = configparser.ConfigParser()
-                    packages_config.read(config_file)
-                    if package_name in packages_config.sections():
-                        packages_config[package_name] = {
-                            "name" : package_name,
-                            "version" : package_version
-                        }
-                        with open(config_file, 'w') as configfile:
-                            packages_config.write(configfile)
-                        
-                        # move dir to packages
-                        shutil.move(package_dir_path, f"{os.path.dirname(os.path.abspath(__file__))}/packages")
-                    else:
+        code = requests.get(url).status_code
+        if code == 200:
+            # Клонируем репозиторий по указанному URL
+            git.Repo.clone_from(url, dir_path)
+            
+            # Check package
+            package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")][1]}"
+            if os.path.exists(f"{package_dir_path}/package.ini"):
+                config = configparser.ConfigParser()
+                config.read(f"{package_dir_path}/package.ini")
+                package_name = config["INFO"].get("name")
+                package_version = config["INFO"].get("version")
+                if package_name and package_version != None:
+                    pattern = r"[!@#$%^&*(),?\":{}|<>]"
+                    if re.search(pattern, package_name) or re.search(pattern, package_version):
                         error = True
+                    else:
+                        # add package to list
+                        config_file = f"{os.path.dirname(os.path.abspath(__file__))}/packages/packages.ini"
+                        packages_config = configparser.ConfigParser()
+                        packages_config.read(config_file)
+                        if package_name not in packages_config.sections():
+                            packages_config[package_name] = {
+                                "name" : package_name,
+                                "version" : package_version
+                            }
+                            with open(config_file, 'w') as configfile:
+                                packages_config.write(configfile)
+                            
+                            # move dir to packages
+                            shutil.move(package_dir_path, f"{os.path.dirname(os.path.abspath(__file__))}/packages")
+                        else:
+                            print("Package alredy exits")
+                            error = True             
                 else:
                     error = True
             else:
                 error = True
         else:
-            error = True
+            print("url not valid")
+            return None
 
         # delete .git folder
         for i in os.listdir(dir_path):
@@ -112,6 +122,7 @@ class PackageManager():
                 shutil.rmtree(tmp, onerror=self.on_rm_error)
         # delete git folder
         shutil.rmtree(dir_path)
+    
         if error:
             pass
         else:
@@ -122,16 +133,26 @@ class PackageManager():
     
             
     def uninstall(self, name:str) -> None:
-        self.list.remove_package_from_list(name=name)
-        shutil.rmtree(f"{self.current_directory}/packages/{name}")
+        if os.path.exists(f"{self.current_directory}/packages/{name}"):
+            self.list.remove_package_from_list(name=name)
+            shutil.rmtree(f"{self.current_directory}/packages/{name}")
+            print("Package deleted")
+        else:
+            print("Package not found")
         
-    # Not worked 
     def create(self, name:str) -> None:
         package_version = "0.0.1"
-        # self.list.add_package_to_list(name=name, version=package_version)
-        # os.makedirs(f"{self.current_directory}/packages/{name}")
-        # with open(f"{self.current_directory}/packages/{name}/version", "w") as version_file:
-        #     version_file.write(package_version)
+        if not self.list.check_exits(name):
+            os.makedirs(f"{self.current_directory}/packages/{name}")
+            with open(f"{self.current_directory}/packages/{name}/package.ini", "w") as ini_file:
+                ini_file.write(f"[INFO]")
+                ini_file.write(f"\nname = {name}")
+                ini_file.write(f"\nversion = {package_version}")
+            package_config = configparser.ConfigParser()
+            package_config.read(f"{self.current_directory}/packages/{name}/package.ini")
+            self.list.add_package_to_list(package_config=package_config)
+        else:
+            print("Package alredy exits")
 
     def get_list(self) -> str:
         config = configparser.ConfigParser()
@@ -144,6 +165,18 @@ class PackageManager():
             ])
         table = AsciiTable(table_data)
         return table.table
+
+    def export(self, name:str) -> None:
+        if self.list.check_exits(name):
+            pack_dir = f"{self.current_directory}/packages/{name}"
+            try:
+                with tarfile.open(f"{os.getcwd()}/{name}.tar.gz", "w:gz") as tar:
+                    tar.add(pack_dir, arcname=os.path.basename(pack_dir))
+                print("Packaage exported")
+            except Exception as e:
+                print(f"Error:\n{e}")
+        else:
+            "Package not found"
             
     
     def set_server_config(self, server_info:str, is_my_server:bool) -> None:

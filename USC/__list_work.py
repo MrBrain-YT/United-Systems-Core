@@ -4,8 +4,18 @@ import configparser
 
 class ListWorker():
 
-    def __init__(self, path:str) -> None:
-        self.__path = path
+    def __init__(self) -> None:
+        pass
+        
+        
+    def check_exits(self, name:str) -> bool:
+        dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"
+        config = configparser.ConfigParser()
+        config.read(f"{dir_path}/packages.ini")
+        if name.lower() in config.sections():
+            return True
+        else:
+            return False
 
     def add_package_to_list(self, package_config:configparser.ConfigParser) -> None:
         dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"

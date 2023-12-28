@@ -62,6 +62,9 @@ if len(sys.argv) > 1:
         case "run":
             pass
         
+        case "export":
+            Manager.export(name=sys_args[1])
+        
         case "server":
             Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
 
