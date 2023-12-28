@@ -15,12 +15,13 @@ class ListWorker():
         # Add package to package list
         config = configparser.ConfigParser()
         config.read(f"{dir_path}/packages.ini")
-        config[package_name.lower()] = {
-            "name" : package_name,
-            "version" :package_version
-        }
-        with open(f"{dir_path}/packages.ini", 'w') as configfile:
-            config.write(configfile)
+        if package_name not in config.sections():
+            config[package_name.lower()] = {
+                "name" : package_name,
+                "version" :package_version
+            }
+            with open(f"{dir_path}/packages.ini", 'w') as configfile:
+                config.write(configfile)
 
     def remove_package_from_list(self, name:str) -> None:
         dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"

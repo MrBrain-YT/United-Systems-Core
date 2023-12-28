@@ -2,7 +2,10 @@
 
 import sys
 import configparser
+import os
+import re
 
+import requests
 from pyfiglet import Figlet
 
 from __package_manager import PackageManager
@@ -25,7 +28,11 @@ if len(sys.argv) > 1:
     match sys_args[0]:
         
         case "install":
-            Manager.install(name=sys_args[1])
+            github_url_pattern = r'^https?://github\.com/.+/.+\.git$'
+            if not re.match(github_url_pattern, sys_args[1]):
+                Manager.install(name=sys_args[1])
+            else:
+                Manager.install_git(url=sys_args[1])
                 
         case "uninstall":
             Manager.uninstall(name=sys_args[1])
@@ -37,13 +44,19 @@ if len(sys.argv) > 1:
             Manager.create(name=sys_args[1])
         
         case "list":
-            print("name | version")
             print(Manager.get_list())
         
         case "update":
             pass
         
         case "upgrade":
+            # version = requests.get("https://raw.githubusercontent.com/MrBrain-YT/United-Systems-Core/Development/version")
+            # if version.status_code == 200:
+            #     preview_text = Figlet(font='larry3d')
+            #     print(preview_text.renderText('------'))
+            #     print(preview_text.renderText(f'V-{version.text}'))
+            #     print(preview_text.renderText('------'))
+            # else:
             pass
         
         case "run":
@@ -59,9 +72,11 @@ if len(sys.argv) > 1:
             pass
         
         case "-v":
+            with open(f'{os.path.dirname(os.path.abspath(__file__))}/version', "r") as ver:
+                version = ver.read()
             preview_text = Figlet(font='larry3d')
             print(preview_text.renderText('------'))
-            print(preview_text.renderText('V-0.0.1'))
+            print(preview_text.renderText(f'V-{version}'))
             print(preview_text.renderText('------'))
             
         case _:
