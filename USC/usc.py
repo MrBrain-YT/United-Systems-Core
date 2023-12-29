@@ -34,8 +34,8 @@ if len(sys.argv) > 1:
             else:
                 Manager.install_git(url=sys_args[1])
                 
-        case "uninstall":
-            Manager.uninstall(name=sys_args[1])
+        case "remove":
+            Manager.remove(name=sys_args[1])
         
         case "refresh":
             Manager.refresh()
@@ -64,6 +64,9 @@ if len(sys.argv) > 1:
         
         case "export":
             Manager.export(name=sys_args[1])
+            
+        case "code":
+            Manager.code(name=sys_args[1])
         
         case "server":
             Manager.set_server_config(server_info=sys_args[1], is_my_server=False)

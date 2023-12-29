@@ -9,7 +9,7 @@ import os
 import re
 import tarfile
 import stat
-from subprocess import call
+from subprocess import call, Popen
 
 
 import git
@@ -132,11 +132,11 @@ class PackageManager():
                     bar.next()
     
             
-    def uninstall(self, name:str) -> None:
+    def remove(self, name:str) -> None:
         if os.path.exists(f"{self.current_directory}/packages/{name}"):
             self.list.remove_package_from_list(name=name)
             shutil.rmtree(f"{self.current_directory}/packages/{name}")
-            print("Package deleted")
+            print("Package removed")
         else:
             print("Package not found")
         
@@ -178,6 +178,13 @@ class PackageManager():
         else:
             "Package not found"
             
+    def code(self, name:str) -> None:
+        if self.list.check_exits(name=name):
+            pack_dir = f"{self.current_directory}/packages/{name}"
+            Popen([shutil.which('code'), pack_dir], shell=False)
+            print("Package opened with VS Code")
+        else:
+            print("Package not found")
     
     def set_server_config(self, server_info:str, is_my_server:bool) -> None:
         config = configparser.ConfigParser()
@@ -197,21 +204,21 @@ class PackageManager():
             
     # Not worked     
     def refresh(self) -> None:
+        # clear packages list
+        with open(f"{self.current_directory}/packages/packages.ini", 'w') as configfile:
+            configfile.write("")
         # get files from directory
-        files = os.listdir(f"{self.current_directory}/packages")
-        # versions = []
-        # for file in files:
-        #     if os.path.exists(f"{self.current_directory}/packages/{file}/version"):
-        #         with open(f"{self.current_directory}/packages/{file}/version", "r") as file_version:
-        #             versions.append(file_version.read())
-        #     else:
-        #         versions.append("0.0.1")
-        #         with open(f"{self.current_directory}/packages/{file}/version", "w") as file_version:
-        #             file_version.write("0.0.1")
-        # # join flename and version
-        # file_and_version = []
-        # for index, file in enumerate(files):
-        #     file_and_version.append(f"{file}=={versions[index]}")
-            
-        # with open(f"{self.current_directory}/__packages", "w") as file:
-        #     file.write("\n".join(file_and_version))
+        files = [file for file in os.listdir(f"{self.current_directory}/packages") if os.path.isdir(f"{self.current_directory}/packages/{file}")]
+        for file in files:
+            if os.path.exists(f"{self.current_directory}/packages/{file}/package.ini"):
+                package_config = configparser.ConfigParser()
+                package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
+                self.list.add_package_to_list(package_config=package_config)
+            else:
+                with open(f"{self.current_directory}/packages/{file}/package.ini", "w") as file_version:
+                    file_version.write(f"[INFO]")
+                    file_version.write(f"\nname = {file}")
+                    file_version.write("\nversion = 0.0.1")
+                package_config = configparser.ConfigParser()
+                package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
+                self.list.add_package_to_list(package_config=package_config)
