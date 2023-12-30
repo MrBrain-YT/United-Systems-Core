@@ -60,7 +60,7 @@ if len(sys.argv) > 1:
             pass
         
         case "run":
-            pass
+            Manager.run()
         
         case "export":
             Manager.export(name=sys_args[1])

@@ -10,9 +10,10 @@ import re
 import tarfile
 import stat
 from subprocess import call, Popen
-
+import importlib
 
 import git
+from flask import Flask
 from terminaltables import AsciiTable
 from progress.bar import ShadyBar
 
@@ -24,6 +25,7 @@ class PackageManager():
         self.current_directory = os.path.dirname(os.path.abspath(__file__))
         self.list = ListWorker()
     
+    # install package
     def install(self, name:str) -> None:
         name = name.lower()
         
@@ -60,11 +62,12 @@ class PackageManager():
             print("Package alredy exist")
     
     @staticmethod
-    def on_rm_error(func, path, exc_info):
+    def on_rm_error(func, path, exc_info) -> None:
         #from: https://stackoverflow.com/questions/4829043/how-to-remove-read-only-attrib-directory-with-python-in-windows
         os.chmod(path, stat.S_IWRITE)
         os.unlink(path)
-        
+    
+    # install package from git 
     def install_git(self, url:str) -> None:
         error = False
  
@@ -131,7 +134,7 @@ class PackageManager():
                     time.sleep(0.1)
                     bar.next()
     
-            
+    # remove package 
     def remove(self, name:str) -> None:
         if os.path.exists(f"{self.current_directory}/packages/{name}"):
             self.list.remove_package_from_list(name=name)
@@ -139,7 +142,8 @@ class PackageManager():
             print("Package removed")
         else:
             print("Package not found")
-        
+    
+    # create package
     def create(self, name:str) -> None:
         package_version = "0.0.1"
         if not self.list.check_exits(name):
@@ -154,6 +158,7 @@ class PackageManager():
         else:
             print("Package alredy exits")
 
+    # get packages list
     def get_list(self) -> str:
         config = configparser.ConfigParser()
         config.read(f"{self.current_directory}/packages/packages.ini")
@@ -165,7 +170,29 @@ class PackageManager():
             ])
         table = AsciiTable(table_data)
         return table.table
+    
+    # run server
+    def run(self) -> None:
+        app = Flask(__name__)
+        packages_folder = f"{self.current_directory}/packages"
+        packages = [package for package in os.listdir(packages_folder) if os.path.isdir(f"{packages_folder}/{package}")]
+        for package in packages:
+            package_folder = f"{self.current_directory}/packages/{package}"
+            package_files = [package for package in os.listdir(package_folder) if ".py" in package]
+            print(package_files, package_folder)
+            for package_file in package_files:
+                package_module = importlib.util.spec_from_file_location(package_file.replace(".py", ""), f"{package_folder}/{package_file}")
+                package = importlib.util.module_from_spec(package_module)
+                package_module.loader.exec_module(package)
+                module_function = [func for func in dir(package) if not func.startswith('__')][-1]
+                getattr(package, module_function)(app)
+        server_config = configparser.ConfigParser()
+        server_config.read(f"{self.current_directory}/run.ini") 
+        host = server_config["SERVER"].get("host")
+        port = server_config["SERVER"].get("port")
+        app.run(host=host, port=port)
 
+    # export package
     def export(self, name:str) -> None:
         if self.list.check_exits(name):
             pack_dir = f"{self.current_directory}/packages/{name}"
@@ -178,6 +205,7 @@ class PackageManager():
         else:
             "Package not found"
             
+    # open package in IDE
     def code(self, name:str) -> None:
         if self.list.check_exits(name=name):
             pack_dir = f"{self.current_directory}/packages/{name}"
@@ -186,6 +214,7 @@ class PackageManager():
         else:
             print("Package not found")
     
+    # set config file for local server and packages server
     def set_server_config(self, server_info:str, is_my_server:bool) -> None:
         config = configparser.ConfigParser()
         config.read(f'{self.current_directory}/run.ini')
@@ -193,16 +222,16 @@ class PackageManager():
             host, port = server_info.split(":")
             config['SERVER'] = {'host': host,
                                 'port': port}
-            with open('run.ini', 'w') as configfile:
+            with open(f'{self.current_directory}/run.ini', 'w') as configfile:
                 config.write(configfile)
         else:
             host, port = server_info.split(":")
             config['DOWNLOAD'] = {'host': host,
                                 'port': port}
-            with open('run.ini', 'w') as configfile:
+            with open(f'{self.current_directory}/run.ini', 'w') as configfile:
                 config.write(configfile)
-            
-    # Not worked     
+          
+    # refresh packages folder
     def refresh(self) -> None:
         # clear packages list
         with open(f"{self.current_directory}/packages/packages.ini", 'w') as configfile:
