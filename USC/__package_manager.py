@@ -11,6 +11,7 @@ import tarfile
 import stat
 from subprocess import call, Popen
 import importlib
+import platform
 
 import git
 from flask import Flask
@@ -172,20 +173,22 @@ class PackageManager():
         return table.table
     
     # run server
-    def run(self) -> None:
-        app = Flask(__name__)
+    def run(self, package:str=None) -> None:
+        app = Flask("United Systems Core", template_folder=f'{self.current_directory}/templates')
+        
         packages_folder = f"{self.current_directory}/packages"
-        packages = [package for package in os.listdir(packages_folder) if os.path.isdir(f"{packages_folder}/{package}")]
+        packages = [package for package in os.listdir(packages_folder) if os.path.isdir(f"{packages_folder}/{package}")] if package == None else package.split(",")
         for package in packages:
             package_folder = f"{self.current_directory}/packages/{package}"
             package_files = [package for package in os.listdir(package_folder) if ".py" in package]
-            print(package_files, package_folder)
             for package_file in package_files:
                 package_module = importlib.util.spec_from_file_location(package_file.replace(".py", ""), f"{package_folder}/{package_file}")
                 package = importlib.util.module_from_spec(package_module)
                 package_module.loader.exec_module(package)
                 module_function = [func for func in dir(package) if not func.startswith('__')][-1]
                 getattr(package, module_function)(app)
+                
+        # run server using data from run.ini
         server_config = configparser.ConfigParser()
         server_config.read(f"{self.current_directory}/run.ini") 
         host = server_config["SERVER"].get("host")
@@ -206,13 +209,54 @@ class PackageManager():
             "Package not found"
             
     # open package in IDE
-    def code(self, name:str) -> None:
-        if self.list.check_exits(name=name):
-            pack_dir = f"{self.current_directory}/packages/{name}"
-            Popen([shutil.which('code'), pack_dir], shell=False)
-            print("Package opened with VS Code")
+    def code(self, name:str, ide:str=None, no_package:bool=False) -> None:
+        if self.list.check_exits(name=name) or no_package:
+            pack_dir = f"{self.current_directory}/packages/{name}" if  no_package == False else f"{self.current_directory}/packages/"
+            # Automatic get IDE
+            if ide is None:
+                # vscode
+                if shutil.which('code') != None:
+                    Popen([shutil.which('code'), pack_dir], shell=False)
+                    print("Opened with VS Code")
+                # vim
+                elif shutil.which('vim') != None:
+                    Popen([shutil.which('vim'), pack_dir], shell=False)
+                    print("Opened with Vim")
+                # no ide
+                else:
+                    print("IDE not found")
+                
+            else:
+                # Manually getting the IDE
+                ide = ide.replace("--", "")
+                # vscode
+                if ide == "vscode":
+                    if shutil.which('code') != None:
+                        Popen([shutil.which('code'), pack_dir], shell=False)
+                        print("Opened with VS Code")
+                    else:
+                        "VS Code not found"
+                # vim
+                elif ide == "vim":
+                    if shutil.which('vim') != None:
+                        Popen([shutil.which('vim'), pack_dir], shell=False)
+                        print("Opened with Vim")
+                    else:
+                        "Vim not found"
+                # no ide
+                else:
+                    print("IDE not selected")
         else:
             print("Package not found")
+            
+    def templates(self):
+        path = f"{self.current_directory}/templates"
+        if platform.system() == "Windows":
+            os.startfile(path)
+        elif platform.system() == "Darwin":
+            Popen(["open", path])
+        else:
+            Popen(["xdg-open", path])
     
     # set config file for local server and packages server
     def set_server_config(self, server_info:str, is_my_server:bool) -> None:

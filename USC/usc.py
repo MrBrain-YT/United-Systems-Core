@@ -5,7 +5,6 @@ import configparser
 import os
 import re
 
-import requests
 from pyfiglet import Figlet
 
 from __package_manager import PackageManager
@@ -17,10 +16,6 @@ config = configparser.ConfigParser()
 preview_text = Figlet(font='slant')
 hello_message = preview_text.renderText('USC')
 
-
-# Get server config
-# config.read('run.ini')
-# server_config = config['SERVER']
 
 sys_args = sys.argv[1::]
 
@@ -60,14 +55,30 @@ if len(sys.argv) > 1:
             pass
         
         case "run":
-            Manager.run()
+            if len(sys_args) == 1:
+                Manager.run()
+            else:
+                if len(sys_args) > 2:
+                    print("Warning - unknown arguments passed")
+                Manager.run(package=sys_args[1])
         
         case "export":
             Manager.export(name=sys_args[1])
             
         case "code":
-            Manager.code(name=sys_args[1])
-        
+            if len(sys_args) == 1:
+                Manager.code(name="", no_package=True)
+            elif len(sys_args) == 2:
+                Manager.code(name=sys_args[1])
+            elif len(sys_args) == 3:
+                Manager.code(name=sys_args[1], ide=sys_args[2])
+            elif len(sys_args) > 3:
+                Manager.code(name=sys_args[1], ide=sys_args[2])
+                print("Warning - unknown arguments passed")
+                
+        case "templates":
+            Manager.templates()
+                
         case "server":
             Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
 

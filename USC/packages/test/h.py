@@ -4,7 +4,7 @@ from flask import Flask
 def test(app:Flask):
     
     @app.route('/test', methods = ['GET'])
-    def test_site():
+    def test_s():
         return "hello world"
     
     
