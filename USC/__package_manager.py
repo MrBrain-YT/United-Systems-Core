@@ -47,6 +47,11 @@ class PackageManager():
                 file.close()
                 os.remove(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz')
                 
+                # move template folder
+                package_templates_dir = f"{os.path.dirname(os.path.abspath(__file__))}/templates/{name}"
+                shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
+                shutil.rmtree(f"{dir_path}/{name}/templates")
+                
                 # Get properties from package.ini
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{dir_path}/{name}/package.ini")
@@ -81,28 +86,23 @@ class PackageManager():
             # Check package
             package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")][1]}"
             if os.path.exists(f"{package_dir_path}/package.ini"):
-                config = configparser.ConfigParser()
-                config.read(f"{package_dir_path}/package.ini")
-                package_name = config["INFO"].get("name")
-                package_version = config["INFO"].get("version")
+                package_config = configparser.ConfigParser()
+                package_config.read(f"{package_dir_path}/package.ini")
+                package_name = package_config["INFO"].get("name")
+                package_version = package_config["INFO"].get("version")
                 if package_name and package_version != None:
                     pattern = r"[!@#$%^&*(),?\":{}|<>]"
                     if re.search(pattern, package_name) or re.search(pattern, package_version):
                         error = True
                     else:
                         # add package to list
-                        config_file = f"{os.path.dirname(os.path.abspath(__file__))}/packages/packages.ini"
-                        packages_config = configparser.ConfigParser()
-                        packages_config.read(config_file)
-                        if package_name not in packages_config.sections():
-                            packages_config[package_name] = {
-                                "name" : package_name,
-                                "version" : package_version
-                            }
-                            with open(config_file, 'w') as configfile:
-                                packages_config.write(configfile)
-                            
+                        if not self.list.check_exits(package_name):
+                            self.list.add_package_to_list(package_config=package_config)
                             # move dir to packages
+                            
+                            package_template_folder = f"{os.path.dirname(os.path.abspath(__file__))}/templates/{package_name}"
+                            shutil.copytree(f"{package_dir_path}/templates", package_template_folder)
+                            shutil.rmtree(f"{package_dir_path}/templates")
                             shutil.move(package_dir_path, f"{os.path.dirname(os.path.abspath(__file__))}/packages")
                         else:
                             print("Package alredy exits")
@@ -140,6 +140,7 @@ class PackageManager():
         if os.path.exists(f"{self.current_directory}/packages/{name}"):
             self.list.remove_package_from_list(name=name)
             shutil.rmtree(f"{self.current_directory}/packages/{name}")
+            shutil.rmtree(f"{self.current_directory}/templates/{name}")
             print("Package removed")
         else:
             print("Package not found")
@@ -155,6 +156,7 @@ class PackageManager():
                 ini_file.write(f"\nversion = {package_version}")
             package_config = configparser.ConfigParser()
             package_config.read(f"{self.current_directory}/packages/{name}/package.ini")
+            os.makedirs(f"{self.current_directory}/templates/{name}")
             self.list.add_package_to_list(package_config=package_config)
         else:
             print("Package alredy exits")
@@ -199,10 +201,13 @@ class PackageManager():
     def export(self, name:str) -> None:
         if self.list.check_exits(name):
             pack_dir = f"{self.current_directory}/packages/{name}"
+            pack_templates_dir = f"{self.current_directory}/templates/{name}"
             try:
+                shutil.copytree(pack_templates_dir, f"{pack_dir}/templates")
                 with tarfile.open(f"{os.getcwd()}/{name}.tar.gz", "w:gz") as tar:
                     tar.add(pack_dir, arcname=os.path.basename(pack_dir))
-                print("Packaage exported")
+                shutil.rmtree(f"{pack_dir}/templates")
+                print("Package exported")
             except Exception as e:
                 print(f"Error:\n{e}")
         else:
@@ -294,4 +299,5 @@ class PackageManager():
                     file_version.write("\nversion = 0.0.1")
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
+                os.mkdir(f"{self.current_directory}/templates/{file}")
                 self.list.add_package_to_list(package_config=package_config)

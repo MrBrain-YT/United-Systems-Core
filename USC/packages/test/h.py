@@ -1,11 +1,11 @@
-from flask import Flask
+from flask import Flask, render_template
 
 
 def test(app:Flask):
     
-    @app.route('/test', methods = ['GET'])
-    def test_s():
-        return "hello world"
+    @app.route('/', methods = ['GET'])
+    def test_site():
+        return render_template("test/h.html")
     
     
 if __name__ == "__main__":
