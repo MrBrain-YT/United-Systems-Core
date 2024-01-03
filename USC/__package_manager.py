@@ -1,7 +1,6 @@
 # PackageManager class for usc methods
 
 import os
-import time
 import configparser
 import shutil
 import requests
@@ -14,11 +13,24 @@ import importlib
 import platform
 
 import git
+from tqdm import tqdm
 from flask import Flask
 from terminaltables import AsciiTable
-from progress.bar import ShadyBar
 
 from __list_work import ListWorker
+
+# Class for progress bar when downloading from GitHub
+class Progress(git.remote.RemoteProgress):
+    def update(self, op_code, cur_count, max_count=None, message=''):
+        if message:
+            print('\r' + message, end='', flush=True)
+
+    def line_dropped(self, line):
+        print(line)
+
+    def sideband_progress(self, data):
+        print('\r' + data, end='', flush=True)
+
 
 class PackageManager():
     
@@ -29,16 +41,24 @@ class PackageManager():
     # install package
     def install(self, name:str) -> None:
         name = name.lower()
-        
         if not self.list.check_exits(name):
             # Get package
             data = {
                 "package_name" : name
                 }
-            responce = requests.post(url="http://127.0.0.1:5000/package", data=data)
-            if responce.status_code == 200:
-                with open(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz', 'wb') as file:
-                    file.write(responce.content)
+            response = requests.post(url="http://127.0.0.1:5000/package", data=data)
+            if response.status_code == 200:
+                filename = f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz'
+                total_size = int(response.headers.get('content-length', 0))
+                with open(filename, 'wb') as f, tqdm(
+                    total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
+                    desc=f"Downloading {name} ", initial=0, miniters=1) as bar:
+                    for data in response.iter_content(chunk_size=1024):
+                        size = f.write(data)
+                        bar.update(size)
+                        
+                # with open(, 'wb') as file:
+                #     file.write(response.content)
                 
                 # extracting file
                 dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"
@@ -55,11 +75,6 @@ class PackageManager():
                 # Get properties from package.ini
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{dir_path}/{name}/package.ini")
-                
-                with ShadyBar('Installing', max=20) as bar:
-                    for i in range(20):
-                        time.sleep(0.1)
-                        bar.next()
                         
                 self.list.add_package_to_list(package_config=package_config)
             else:
@@ -75,13 +90,11 @@ class PackageManager():
     
     # install package from git 
     def install_git(self, url:str) -> None:
-        error = False
- 
         dir_path = f'{os.path.dirname(os.path.abspath(__file__))}/temp/git'
         code = requests.get(url).status_code
         if code == 200:
             # Клонируем репозиторий по указанному URL
-            git.Repo.clone_from(url, dir_path)
+            git.Repo.clone_from(url, dir_path, progress=Progress())
             
             # Check package
             package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")][1]}"
@@ -95,22 +108,20 @@ class PackageManager():
                     if re.search(pattern, package_name) or re.search(pattern, package_version):
                         error = True
                     else:
-                        # add package to list
                         if not self.list.check_exits(package_name):
+                            # add package to list
                             self.list.add_package_to_list(package_config=package_config)
                             # move dir to packages
-                            
                             package_template_folder = f"{os.path.dirname(os.path.abspath(__file__))}/templates/{package_name}"
                             shutil.copytree(f"{package_dir_path}/templates", package_template_folder)
                             shutil.rmtree(f"{package_dir_path}/templates")
                             shutil.move(package_dir_path, f"{os.path.dirname(os.path.abspath(__file__))}/packages")
                         else:
-                            print("Package alredy exits")
-                            error = True             
+                            print("\nPackage alredy exits")          
                 else:
-                    error = True
+                    print("\nInvalid package")
             else:
-                error = True
+                print("\nPackage does not contain package.ini")
         else:
             print("url not valid")
             return None
@@ -126,40 +137,35 @@ class PackageManager():
                 shutil.rmtree(tmp, onerror=self.on_rm_error)
         # delete git folder
         shutil.rmtree(dir_path)
-    
-        if error:
-            pass
-        else:
-            with ShadyBar('Installing', max=20) as bar:
-                for i in range(20):
-                    time.sleep(0.1)
-                    bar.next()
+
     
     # remove package 
-    def remove(self, name:str) -> None:
-        if os.path.exists(f"{self.current_directory}/packages/{name}"):
-            self.list.remove_package_from_list(name=name)
-            shutil.rmtree(f"{self.current_directory}/packages/{name}")
-            shutil.rmtree(f"{self.current_directory}/templates/{name}")
-            print("Package removed")
-        else:
-            print("Package not found")
+    def remove(self, names:list[str]) -> None:
+        for name in names:
+            if os.path.exists(f"{self.current_directory}/packages/{name}"):
+                self.list.remove_package_from_list(name=name)
+                shutil.rmtree(f"{self.current_directory}/packages/{name}")
+                shutil.rmtree(f"{self.current_directory}/templates/{name}")
+                print("Package removed")
+            else:
+                print("Package not found")
     
     # create package
-    def create(self, name:str) -> None:
-        package_version = "0.0.1"
-        if not self.list.check_exits(name):
-            os.makedirs(f"{self.current_directory}/packages/{name}")
-            with open(f"{self.current_directory}/packages/{name}/package.ini", "w") as ini_file:
-                ini_file.write(f"[INFO]")
-                ini_file.write(f"\nname = {name}")
-                ini_file.write(f"\nversion = {package_version}")
-            package_config = configparser.ConfigParser()
-            package_config.read(f"{self.current_directory}/packages/{name}/package.ini")
-            os.makedirs(f"{self.current_directory}/templates/{name}")
-            self.list.add_package_to_list(package_config=package_config)
-        else:
-            print("Package alredy exits")
+    def create(self, names:list[str]) -> None:
+        for name in names:
+            package_version = "0.0.1"
+            if not self.list.check_exits(name):
+                os.makedirs(f"{self.current_directory}/packages/{name}")
+                with open(f"{self.current_directory}/packages/{name}/package.ini", "w") as ini_file:
+                    ini_file.write(f"[INFO]")
+                    ini_file.write(f"\nname = {name}")
+                    ini_file.write(f"\nversion = {package_version}")
+                package_config = configparser.ConfigParser()
+                package_config.read(f"{self.current_directory}/packages/{name}/package.ini")
+                os.makedirs(f"{self.current_directory}/templates/{name}")
+                self.list.add_package_to_list(package_config=package_config)
+            else:
+                print("Package alredy exits")
 
     # get packages list
     def get_list(self) -> str:
@@ -198,20 +204,21 @@ class PackageManager():
         app.run(host=host, port=port)
 
     # export package
-    def export(self, name:str) -> None:
-        if self.list.check_exits(name):
-            pack_dir = f"{self.current_directory}/packages/{name}"
-            pack_templates_dir = f"{self.current_directory}/templates/{name}"
-            try:
-                shutil.copytree(pack_templates_dir, f"{pack_dir}/templates")
-                with tarfile.open(f"{os.getcwd()}/{name}.tar.gz", "w:gz") as tar:
-                    tar.add(pack_dir, arcname=os.path.basename(pack_dir))
-                shutil.rmtree(f"{pack_dir}/templates")
-                print("Package exported")
-            except Exception as e:
-                print(f"Error:\n{e}")
-        else:
-            "Package not found"
+    def export(self, names:list[str]) -> None:
+        for name in names:
+            if self.list.check_exits(name):
+                pack_dir = f"{self.current_directory}/packages/{name}"
+                pack_templates_dir = f"{self.current_directory}/templates/{name}"
+                try:
+                    shutil.copytree(pack_templates_dir, f"{pack_dir}/templates")
+                    with tarfile.open(f"{os.getcwd()}/{name}.tar.gz", "w:gz") as tar:
+                        tar.add(pack_dir, arcname=os.path.basename(pack_dir))
+                    shutil.rmtree(f"{pack_dir}/templates")
+                    print("Package exported")
+                except Exception as e:
+                    print(f"Error:\n{e}")
+            else:
+                "Package not found"
             
     # open package in IDE
     def code(self, name:str, ide:str=None, no_package:bool=False) -> None:
@@ -291,6 +298,8 @@ class PackageManager():
             if os.path.exists(f"{self.current_directory}/packages/{file}/package.ini"):
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
+                if not os.path.exists(f"{self.current_directory}/templates/{file}"):
+                    os.mkdir(f"{self.current_directory}/templates/{file}")
                 self.list.add_package_to_list(package_config=package_config)
             else:
                 with open(f"{self.current_directory}/packages/{file}/package.ini", "w") as file_version:

@@ -24,19 +24,20 @@ if len(sys.argv) > 1:
         
         case "install":
             github_url_pattern = r'^https?://github\.com/.+/.+\.git$'
-            if not re.match(github_url_pattern, sys_args[1]):
-                Manager.install(name=sys_args[1])
-            else:
-                Manager.install_git(url=sys_args[1])
+            for package in sys_args[1].split(","):
+                if not re.match(github_url_pattern, package):
+                    Manager.install(name=package)
+                else:
+                    Manager.install_git(url=package)
                 
         case "remove":
-            Manager.remove(name=sys_args[1])
+            Manager.remove(names=sys_args[1].split(","))
         
         case "refresh":
             Manager.refresh()
         
         case "create":
-            Manager.create(name=sys_args[1])
+            Manager.create(names=sys_args[1].split(","))
         
         case "list":
             print(Manager.get_list())
@@ -63,7 +64,7 @@ if len(sys.argv) > 1:
                 Manager.run(package=sys_args[1])
         
         case "export":
-            Manager.export(name=sys_args[1])
+            Manager.export(names=sys_args[1].split(","))
             
         case "code":
             if len(sys_args) == 1:
