@@ -31,7 +31,7 @@ class Progress(git.remote.RemoteProgress):
     def sideband_progress(self, data):
         print('\r' + data, end='', flush=True)
 
-
+# Main methods class 
 class PackageManager():
     
     def __init__(self) -> None:
@@ -42,13 +42,21 @@ class PackageManager():
     def install(self, name:str) -> None:
         name = name.lower()
         if not self.list.check_exits(name):
+            # Get download server info from run.ini
+            server_config = configparser.ConfigParser()
+            server_config.read(f"{self.current_directory}/run.ini") 
+            host = server_config["DOWNLOAD"].get("host")
+            port = server_config["DOWNLOAD"].get("port")
             # Get package
             data = {
                 "package_name" : name
                 }
-            response = requests.post(url="http://127.0.0.1:5000/package", data=data)
+            response = requests.post(url=f"http://{host}:{port}/package", data=data)
+            # Checking valid server data
             if response.status_code == 200:
-                filename = f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz'
+                
+                # Get tar-gz file from server
+                filename = f'{self.current_directory}/temp/{name}.tar.gz'
                 total_size = int(response.headers.get('content-length', 0))
                 with open(filename, 'wb') as f, tqdm(
                     total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
@@ -57,18 +65,15 @@ class PackageManager():
                         size = f.write(data)
                         bar.update(size)
                         
-                # with open(, 'wb') as file:
-                #     file.write(response.content)
-                
                 # extracting file
-                dir_path = f"{os.path.dirname(os.path.abspath(__file__))}/packages"
-                file = tarfile.open(f"{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz") 
+                dir_path = f"{self.current_directory}/packages"
+                file = tarfile.open(f"{self.current_directory}/temp/{name}.tar.gz") 
                 file.extractall(dir_path) 
                 file.close()
-                os.remove(f'{os.path.dirname(os.path.abspath(__file__))}/temp/{name}.tar.gz')
+                os.remove(f'{self.current_directory}/temp/{name}.tar.gz')
                 
                 # move template folder
-                package_templates_dir = f"{os.path.dirname(os.path.abspath(__file__))}/templates/{name}"
+                package_templates_dir = f"{self.current_directory}/templates/{name}"
                 shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
                 shutil.rmtree(f"{dir_path}/{name}/templates")
                 
@@ -90,7 +95,7 @@ class PackageManager():
     
     # install package from git 
     def install_git(self, url:str) -> None:
-        dir_path = f'{os.path.dirname(os.path.abspath(__file__))}/temp/git'
+        dir_path = f'{self.current_directory}/temp/git'
         code = requests.get(url).status_code
         if code == 200:
             # Клонируем репозиторий по указанному URL
@@ -112,10 +117,10 @@ class PackageManager():
                             # add package to list
                             self.list.add_package_to_list(package_config=package_config)
                             # move dir to packages
-                            package_template_folder = f"{os.path.dirname(os.path.abspath(__file__))}/templates/{package_name}"
+                            package_template_folder = f"{self.current_directory}/templates/{package_name}"
                             shutil.copytree(f"{package_dir_path}/templates", package_template_folder)
                             shutil.rmtree(f"{package_dir_path}/templates")
-                            shutil.move(package_dir_path, f"{os.path.dirname(os.path.abspath(__file__))}/packages")
+                            shutil.move(package_dir_path, f"{self.current_directory}/packages")
                         else:
                             print("\nPackage alredy exits")          
                 else:
@@ -142,11 +147,27 @@ class PackageManager():
     # remove package 
     def remove(self, names:list[str]) -> None:
         for name in names:
-            if os.path.exists(f"{self.current_directory}/packages/{name}"):
+            # If name == "*" then remove all packages
+            if name == "*":
+                # Geting all packages from packages directory
+                dir_path = f"{self.current_directory}/packages"
+                packages = [folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")]
+                # Removing packages
+                for package in packages:
+                    self.list.remove_package_from_list(name=package)
+                    shutil.rmtree(f"{self.current_directory}/packages/{package}")
+                    shutil.rmtree(f"{self.current_directory}/templates/{package}")
+                    print(f"Package {package} removed")
+                break
+            
+            # remove pacage if package in packages.ini
+            elif self.list.check_exits(name=name):
                 self.list.remove_package_from_list(name=name)
                 shutil.rmtree(f"{self.current_directory}/packages/{name}")
                 shutil.rmtree(f"{self.current_directory}/templates/{name}")
-                print("Package removed")
+                print(f"Package {name} removed")
+            
+            # package not found
             else:
                 print("Package not found")
     
@@ -154,38 +175,56 @@ class PackageManager():
     def create(self, names:list[str]) -> None:
         for name in names:
             package_version = "0.0.1"
+            # Check on not exist package in packages.ini file
             if not self.list.check_exits(name):
+                
+                # Creating package folder
                 os.makedirs(f"{self.current_directory}/packages/{name}")
+                os.makedirs(f"{self.current_directory}/templates/{name}")
+                
+                # creating new package.ini file
                 with open(f"{self.current_directory}/packages/{name}/package.ini", "w") as ini_file:
                     ini_file.write(f"[INFO]")
                     ini_file.write(f"\nname = {name}")
                     ini_file.write(f"\nversion = {package_version}")
+                
+                # Add package to packages.ini file
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{name}/package.ini")
-                os.makedirs(f"{self.current_directory}/templates/{name}")
                 self.list.add_package_to_list(package_config=package_config)
             else:
                 print("Package alredy exits")
 
     # get packages list
     def get_list(self) -> str:
+        # Open packages.ini file
         config = configparser.ConfigParser()
         config.read(f"{self.current_directory}/packages/packages.ini")
+        
+        # Creating table data
         table_data = [['Name', "Version"]]
         for pack in config.sections():
             table_data.append([
                 config[pack].get("name"),
                 config[pack].get("version")
             ])
+        # Creating table
         table = AsciiTable(table_data)
+        
         return table.table
     
     # run server
     def run(self, package:str=None) -> None:
         app = Flask("United Systems Core", template_folder=f'{self.current_directory}/templates')
         
+        # Get packages for running
         packages_folder = f"{self.current_directory}/packages"
-        packages = [package for package in os.listdir(packages_folder) if os.path.isdir(f"{packages_folder}/{package}")] if package == None else package.split(",")
+        packages = [
+                    package for package in os.listdir(packages_folder) 
+                    if os.path.isdir(f"{packages_folder}/{package}")
+                    ] if package == None else package.split(",")
+        
+        # Importing packages modules
         for package in packages:
             package_folder = f"{self.current_directory}/packages/{package}"
             package_files = [package for package in os.listdir(package_folder) if ".py" in package]
@@ -205,16 +244,24 @@ class PackageManager():
 
     # export package
     def export(self, names:list[str]) -> None:
+        # export package to current opened directory
         for name in names:
             if self.list.check_exits(name):
+                # Get package folders
                 pack_dir = f"{self.current_directory}/packages/{name}"
                 pack_templates_dir = f"{self.current_directory}/templates/{name}"
                 try:
+                    # Creating temp temoplates file in package folder
                     shutil.copytree(pack_templates_dir, f"{pack_dir}/templates")
+                    
+                    # creating tar.gz file
                     with tarfile.open(f"{os.getcwd()}/{name}.tar.gz", "w:gz") as tar:
                         tar.add(pack_dir, arcname=os.path.basename(pack_dir))
+                        
+                    # Removing temp temoplates file in package folder
                     shutil.rmtree(f"{pack_dir}/templates")
                     print("Package exported")
+                    
                 except Exception as e:
                     print(f"Error:\n{e}")
             else:
@@ -223,7 +270,9 @@ class PackageManager():
     # open package in IDE
     def code(self, name:str, ide:str=None, no_package:bool=False) -> None:
         if self.list.check_exits(name=name) or no_package:
-            pack_dir = f"{self.current_directory}/packages/{name}" if  no_package == False else f"{self.current_directory}/packages/"
+            pack_dir = f"{self.current_directory}/packages/{name}" \
+                if no_package == False else f"{self.current_directory}/packages/"
+                
             # Automatic get IDE
             if ide is None:
                 # vscode
@@ -262,6 +311,7 @@ class PackageManager():
             print("Package not found")
             
     def templates(self):
+        # Open templates folder
         path = f"{self.current_directory}/templates"
         if platform.system() == "Windows":
             os.startfile(path)
@@ -274,6 +324,7 @@ class PackageManager():
     def set_server_config(self, server_info:str, is_my_server:bool) -> None:
         config = configparser.ConfigParser()
         config.read(f'{self.current_directory}/run.ini')
+        # Checking which parameter needs to be changed
         if is_my_server:
             host, port = server_info.split(":")
             config['SERVER'] = {'host': host,
@@ -293,19 +344,33 @@ class PackageManager():
         with open(f"{self.current_directory}/packages/packages.ini", 'w') as configfile:
             configfile.write("")
         # get files from directory
-        files = [file for file in os.listdir(f"{self.current_directory}/packages") if os.path.isdir(f"{self.current_directory}/packages/{file}")]
+        files = [
+            file for file in os.listdir(f"{self.current_directory}/packages") 
+            if os.path.isdir(f"{self.current_directory}/packages/{file}")
+            ]
+        
         for file in files:
+            # Checking exist package.ini file
             if os.path.exists(f"{self.current_directory}/packages/{file}/package.ini"):
+                
+                # Open packages ini file
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
+                
+                # checking templates folder
                 if not os.path.exists(f"{self.current_directory}/templates/{file}"):
                     os.mkdir(f"{self.current_directory}/templates/{file}")
+                    
+                # Add package to list 
                 self.list.add_package_to_list(package_config=package_config)
             else:
+                # Create package.ini file
                 with open(f"{self.current_directory}/packages/{file}/package.ini", "w") as file_version:
                     file_version.write(f"[INFO]")
                     file_version.write(f"\nname = {file}")
                     file_version.write("\nversion = 0.0.1")
+                
+                # read created package.ini fale and add package to packages.ini file
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
                 os.mkdir(f"{self.current_directory}/templates/{file}")
