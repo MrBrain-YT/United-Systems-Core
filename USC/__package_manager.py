@@ -376,55 +376,65 @@ class PackageManager():
                 package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
                 os.mkdir(f"{self.current_directory}/templates/{file}")
                 self.list.add_package_to_list(package_config=package_config)
+              
+    def update_algorithm(self):
+        # Cloning repo
+        dir_path = f"{self.current_directory}/temp"
+        os.mkdir(f"{dir_path}/update")
+        url = "https://github.com/MrBrain-YT/United-Systems-Core.git"
+        git.Repo.clone_from(url, f"{dir_path}/update", progress=Progress())
+        
+        # removing old files
+        remove_files = [file for file in os.listdir(self.current_directory) if ".py" in file]
+        remove_files.append("version")
+        for file in remove_files:
+            os.remove(os.path.join(self.current_directory, file))
+            
+        # Restor new py files add version file
+        new_main_files = [file for file in os.listdir(f"{dir_path}/update/usc") if ".py" in file]
+        new_main_files.append("version")
+        for file in new_main_files:
+            shutil.copy2(os.path.join(f"{dir_path}/update/usc", file), self.current_directory)
+            
+        # Restor packages file 
+        new_packages_files = [file for file in os.listdir(f"{dir_path}/update/usc/packages") if "packages.ini" != file]
+        for file in new_packages_files:
+            full_path = os.path.join(f"{dir_path}/update/usc/packages", file)
+            if os.path.isdir(full_path):
+                shutil.copytree(full_path, f"{self.current_directory}/packages")
+            else:
+                shutil.copy2(full_path, f"{self.current_directory}/packages")
+            
+        # Restor templates file 
+        new_templates_files = [file for file in os.listdir(f"{dir_path}/update/usc/templates")]
+        for file in new_templates_files:
+            full_path = os.path.join(f"{dir_path}/update/usc/templates", file)
+            if os.path.isdir(full_path):
+                shutil.copytree(full_path, f"{self.current_directory}/templates")
+            else:
+                shutil.copy2(full_path, f"{self.current_directory}/templates")
+                
+        shutil.rmtree(f"{dir_path}/update")
+                
                 
     def update(self):
-        version = requests.get("https://raw.githubusercontent.com/MrBrain-YT/United-Systems-Core/Development/USC/version")
+        version = requests.get("https://raw.githubusercontent.com/MrBrain-YT/United-Systems-Core/main/USC/version")
         if version.status_code == 200:
             with open(f'{os.path.dirname(os.path.abspath(__file__))}/version', "r") as ver:
                 local_version = ver.read()
                 
             local_version = local_version.split(".")
             version = version.text.split(".")
-            if (int(version[0]) >= int(local_version[0])) and \
-                (int(version[1]) >= int(local_version[1])) and \
-                (int(version[2]) > int(local_version[2])):
-                    # Update core
-                    dir_path = f"{self.current_directory}/temp"
-                    os.mkdir(f"{dir_path}/update")
-                    url = "https://github.com/MrBrain-YT/United-Systems-Core.git"
-                    git.Repo.clone_from(url, f"{dir_path}/update", progress=Progress())
-                    
-                    # removing old files
-                    remove_files = [file for file in os.listdir(self.current_directory) if ".py" in file]
-                    remove_files.append("version")
-                    for file in remove_files:
-                        os.remove(os.path.join(self.current_directory, file))
-                        
-                    # Restor new py files add version file
-                    new_main_files = [file for file in os.listdir(f"{dir_path}/update/usc") if ".py" in file]
-                    new_main_files.append("version")
-                    for file in new_main_files:
-                        shutil.copy2(os.path.join(f"{dir_path}/update/usc", file), self.current_directory)
-                        
-                    # Restor packages file 
-                    new_packages_files = [file for file in os.listdir(f"{dir_path}/update/usc/packages") if "packages.ini" != file]
-                    for file in new_packages_files:
-                        full_path = os.path.join(f"{dir_path}/update/usc/packages", file)
-                        if os.path.isdir(full_path):
-                            shutil.copytree(full_path, f"{self.current_directory}/packages")
-                        else:
-                            shutil.copy2(full_path, f"{self.current_directory}/packages")
-                        
-                    # Restor templates file 
-                    new_templates_files = [file for file in os.listdir(f"{dir_path}/update/usc/templates")]
-                    for file in new_templates_files:
-                        full_path = os.path.join(f"{dir_path}/update/usc/templates", file)
-                        if os.path.isdir(full_path):
-                            shutil.copytree(full_path, f"{self.current_directory}/templates")
-                        else:
-                            shutil.copy2(full_path, f"{self.current_directory}/templates")
+            if (int(version[0]) > int(local_version[0])):
+                self.update_algorithm()    
             else:
-                print("Latest version already installed")
+                if int(version[1]) > int(local_version[1]):
+                    self.update_algorithm()
+                else:
+                    if int(version[2]) > int(local_version[2]):
+                        self.update_algorithm()
+                    else:
+                        print("Latest version already installed")
         else:
             print("Url not valid")
             
