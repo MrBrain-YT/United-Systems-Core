@@ -43,17 +43,7 @@ if len(sys.argv) > 1:
             print(Manager.get_list())
         
         case "update":
-            pass
-        
-        case "upgrade":
-            # version = requests.get("https://raw.githubusercontent.com/MrBrain-YT/United-Systems-Core/Development/version")
-            # if version.status_code == 200:
-            #     preview_text = Figlet(font='larry3d')
-            #     print(preview_text.renderText('------'))
-            #     print(preview_text.renderText(f'V-{version.text}'))
-            #     print(preview_text.renderText('------'))
-            # else:
-            pass
+            Manager.update()
         
         case "run":
             if len(sys_args) == 1:
