@@ -414,6 +414,16 @@ class PackageManager():
             else:
                 shutil.copy2(full_path, f"{self.current_directory}/templates")
                 
+        # delete .git folder
+        for i in os.listdir(f"{dir_path}/update"):
+            if i.endswith('git'):
+                tmp = os.path.join(f"{dir_path}/update", i)
+                # We want to unhide the .git folder before unlinking it.
+                while True:
+                    call(['attrib', '-H', tmp])
+                    break
+                shutil.rmtree(tmp, onerror=self.on_rm_error)
+        # delete update folder
         shutil.rmtree(f"{dir_path}/update")
                 
                 
