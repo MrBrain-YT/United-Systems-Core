@@ -13,6 +13,7 @@ import importlib
 import platform
 
 import git
+from pyfiglet import Figlet
 from tqdm import tqdm
 from flask import Flask
 from terminaltables import AsciiTable
@@ -426,3 +427,30 @@ class PackageManager():
                 print("Latest version already installed")
         else:
             print("Url not valid")
+            
+    @staticmethod
+    def help_message() -> dict:
+        message_data = {
+            "install": "Install package from USCServer and GitHub",
+            "remove": "Remove package",
+            "refresh": "Refrash packages data",
+            "list": "Get list installed packages",
+            "update": "Upadate United Systems Core",
+            "run": "Start the server with all packages or only with selected ones",
+            "export": "Export package to curent opened in terminal folder",
+            "code": "Open packages or package in IDE (vs code, vim)",
+            "templates": "Open templates folder",
+            "server": "Set data for the server from which packages are downloaded",
+            "config": "Set data for the server on which the packages are launched",
+            "-h": "Get help message",
+            "-v": "Get USC version",
+        }
+        return message_data
+    
+    def core_version():
+        with open(f'{os.path.dirname(os.path.abspath(__file__))}/version', "r") as ver:
+            version = ver.read()
+        preview_text = Figlet(font='larry3d')
+        print(preview_text.renderText('------'))
+        print(preview_text.renderText(f'V-{version}'))
+        print(preview_text.renderText('------'))

@@ -4,6 +4,7 @@ import sys
 import configparser
 import os
 import re
+import pprint
 
 from pyfiglet import Figlet
 
@@ -77,15 +78,12 @@ if len(sys.argv) > 1:
             Manager.set_server_config(server_info=sys_args[1], is_my_server=True)
         
         case "-h":
-            pass
+            print(hello_message)
+            pprint.pprint(Manager.help_message())
+            print()
         
         case "-v":
-            with open(f'{os.path.dirname(os.path.abspath(__file__))}/version', "r") as ver:
-                version = ver.read()
-            preview_text = Figlet(font='larry3d')
-            print(preview_text.renderText('------'))
-            print(preview_text.renderText(f'V-{version}'))
-            print(preview_text.renderText('------'))
+            Manager.core_version()
             
         case _:
             print("Unknown command")
