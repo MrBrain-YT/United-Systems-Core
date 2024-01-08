@@ -400,24 +400,24 @@ class PackageManager():
                         os.remove(os.path.join(self.current_directory, file))
                         
                     # Restor new py files add version file
-                    new_main_files = [file for file in os.listdir(f"{dir_path}/update") if ".py" in file]
+                    new_main_files = [file for file in os.listdir(f"{dir_path}/update/usc") if ".py" in file]
                     new_main_files.append("version")
                     for file in new_main_files:
-                        shutil.copy2(os.path.join(f"{dir_path}/update", file), self.current_directory)
+                        shutil.copy2(os.path.join(f"{dir_path}/update/usc", file), self.current_directory)
                         
                     # Restor packages file 
-                    new_packages_files = [file for file in os.listdir(f"{dir_path}/update/packages") if "packages.ini" != file]
+                    new_packages_files = [file for file in os.listdir(f"{dir_path}/update/usc/packages") if "packages.ini" != file]
                     for file in new_packages_files:
-                        full_path = os.path.join(f"{dir_path}/update/packages", file)
+                        full_path = os.path.join(f"{dir_path}/update/usc/packages", file)
                         if os.path.isdir(full_path):
                             shutil.copytree(full_path, f"{self.current_directory}/packages")
                         else:
-                            shutil.copy2(full_path, self.current_directory)
+                            shutil.copy2(full_path, f"{self.current_directory}/packages")
                         
                     # Restor templates file 
-                    new_packages_files = [file for file in os.listdir(f"{dir_path}/update/templates")]
+                    new_packages_files = [file for file in os.listdir(f"{dir_path}/update/usc/templates")]
                     for file in new_packages_files:
-                        full_path = os.path.join(f"{dir_path}/update/templates", file)
+                        full_path = os.path.join(f"{dir_path}/update/usc/templates", file)
                         if os.path.isdir(full_path):
                             shutil.copytree(full_path, f"{self.current_directory}/templates")
                         else:
