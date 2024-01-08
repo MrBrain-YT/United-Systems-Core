@@ -415,14 +415,13 @@ class PackageManager():
                             shutil.copy2(full_path, f"{self.current_directory}/packages")
                         
                     # Restor templates file 
-                    new_packages_files = [file for file in os.listdir(f"{dir_path}/update/usc/templates")]
-                    for file in new_packages_files:
+                    new_templates_files = [file for file in os.listdir(f"{dir_path}/update/usc/templates")]
+                    for file in new_templates_files:
                         full_path = os.path.join(f"{dir_path}/update/usc/templates", file)
                         if os.path.isdir(full_path):
                             shutil.copytree(full_path, f"{self.current_directory}/templates")
                         else:
                             shutil.copy2(full_path, f"{self.current_directory}/templates")
-
             else:
                 print("Latest version already installed")
         else:
