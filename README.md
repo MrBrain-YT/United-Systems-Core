@@ -77,14 +77,13 @@ United Systems Core - system designed to simplify the process of creating, manag
 ## How to create package
 To create a package, you need to follow certain rules:
 
-- You need to create a package template. This can be done in several ways.
+- You need to create a package template using a command
     
-    - Creating using a command
 
-        ```bash
-        usc create "package_name"
-        ```
-    - Creating using the refresh command. More precisely, you can ```create an empty folder``` in the package directory, and then ```use the refresh command```, which will turn the empty folder into a directory for a new package and add the new package to the list.
+    ```bash
+    usc create "package_name"
+    ```
+
 - Afterward, open the package in any available supported IDE (```VS Code```, ```Vim```) using the command
     ```bash
     usc code "package_name"
@@ -106,6 +105,27 @@ To create a package, you need to follow certain rules:
         ```bash
         return render_template("test/test.html")
         ```
+
+- To add JS and CSS scripts, you can use the "static" folder in your package directory.
+To open the "static" directory, use the command:
+    ```bash
+    usc static
+    ```
+    
+    
+    Example usage in HTML:
+    ```bash
+    <link rel="stylesheet" type="text/css" href="/static/```package_name/index.css">
+    ```
+
+- Python files starting with "__" will not be executed using the ```run``` command. Such files are considered auxiliary. The function launched through the ```run``` command must meet certain requirements:
+
+    - It should accept the argument "app"
+
+        ```bash
+        def test(app:Flask):
+        ```
+    - It should run the last specified function whose name does not contain "__"
 
 
 ## Example package for USC
