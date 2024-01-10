@@ -70,6 +70,9 @@ if len(sys.argv) > 1:
                 
         case "templates":
             Manager.templates()
+            
+        case "static":
+            Manager.static()
                 
         case "server":
             Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
