@@ -69,10 +69,16 @@ if len(sys.argv) > 1:
                 print("Warning - unknown arguments passed")
                 
         case "templates":
-            Manager.templates()
+            if len(sys_args) > 1:
+                Manager.templates(package=sys_args[1])
+            else:
+                Manager.templates()
             
         case "static":
-            Manager.static()
+            if len(sys_args) > 1:
+                Manager.static(package=sys_args[1])
+            else:
+                Manager.static()
                 
         case "server":
             Manager.set_server_config(server_info=sys_args[1], is_my_server=False)

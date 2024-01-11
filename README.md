@@ -98,23 +98,23 @@ To create a package, you need to follow certain rules:
         ```
     - To add an HTML page, you need to open the "templates" directory using the command
         ```bash
-        usc templates
+        usc templates "package_name"
         ```
         
         There, you need to find the directory of your package and place your HTML files in it. To use your HTML file in the render_template function, you need to specify the path as ```/package_name/test.html```.
-        ```bash
-        return render_template("test/test.html")
+        ```python
+        return render_template("package_name/test.html")
         ```
 
 - To add JS and CSS scripts, you can use the "static" folder in your package directory.
 To open the "static" directory, use the command:
     ```bash
-    usc static
+    usc static "package_name"
     ```
     
     
     Example usage in HTML:
-    ```bash
+    ```html
     <link rel="stylesheet" type="text/css" href="/static/```package_name/index.css">
     ```
 
@@ -122,7 +122,7 @@ To open the "static" directory, use the command:
 
     - It should accept the argument "app"
 
-        ```bash
+        ```python
         def test(app:Flask):
         ```
     - It should run the last specified function whose name does not contain "__"
