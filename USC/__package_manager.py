@@ -174,7 +174,7 @@ class PackageManager():
                     print(f"Package {package} removed")
                 break
             
-            # remove pacage if package in packages.ini
+            # remove package if package in packages.ini
             elif self.list.check_exits(name=name):
                 self.list.remove_package_from_list(name=name)
                 if os.path.exists(f"{self.current_directory}/packages/{name}"):
@@ -336,9 +336,18 @@ class PackageManager():
         else:
             print("Package not found")
             
-    def templates(self):
+    def templates(self, package:str=None) -> None:
+        if package != None:
+            package = package.lower()
+            if self.list.check_exits(package):
+                path = f"{self.current_directory}/templates/{package}"
+            else:
+                print("Package not found")
+                return None
+        else:
+            path = f"{self.current_directory}/templates"
+            
         # Open templates folder
-        path = f"{self.current_directory}/templates"
         if platform.system() == "Windows":
             os.startfile(path)
         elif platform.system() == "Darwin":
@@ -346,9 +355,18 @@ class PackageManager():
         else:
             Popen(["xdg-open", path])
             
-    def static(self):
+    def static(self, package:str=None) -> None:
+        if package != None:
+            package = package.lower()
+            if self.list.check_exits(package):
+                path = f"{self.current_directory}/static/{package}"
+            else:
+                print("Package not found")
+                return None
+        else:
+            path = f"{self.current_directory}/static"
+            
         # Open templates folder
-        path = f"{self.current_directory}/static"
         if platform.system() == "Windows":
             os.startfile(path)
         elif platform.system() == "Darwin":
