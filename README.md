@@ -1,35 +1,7 @@
 <p align="center">
   <img src="USC.png" alt="Sublime's custom image"/>
-  <br>
-  <text></text>
-  <h2 align="center" id="beta">Project under development</h2>
+  <h2 align="center">Project under development</h2>
 </p>
-
-<style>
-    @keyframes beta{
-        0% {
-            color: red;
-        }
-        50% {
-            color: black;
-        }
-        100% {
-            color: red;
-        }
-    }
-
-    #beta {
-        color: red;
-        animation: 2s infinite beta;
-    }
-
-    #beta:hover {
-        color: red;
-        animation: 2s 1 beta;
-    }
-
-    
-</style>
 
 # United Systems Core
 
