@@ -30,6 +30,10 @@ if len(sys.argv) > 1:
                     Manager.install(name=package)
                 else:
                     Manager.install_git(url=package)
+                    
+        case "import":
+            if len(sys_args) > 1:
+                Manager.import_package(paths=sys_args[1].split(","))
                 
         case "remove":
             Manager.remove(names=sys_args[1].split(","))

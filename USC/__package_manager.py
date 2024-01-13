@@ -93,6 +93,52 @@ class PackageManager():
                 print("Package not found in server")
         else:
             print("Package alredy exist")
+            
+    # import package
+    def import_package(self, paths:list) -> None:
+        for path in paths:
+            if os.path.exists(path):
+                # extracting file
+                dir_path = f"{self.current_directory}/temp"
+                start_package_dir_path = [folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")]
+                file = tarfile.open(path) 
+                file.extractall(dir_path) 
+                file.close()
+                end_package_dir_path = [folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")]
+                start_package_dir_path = set(start_package_dir_path)
+                start_package_dir_path.add("h")
+                end_package_dir_path = set(end_package_dir_path)
+                end_package_dir_path.add("h")
+                name = list(end_package_dir_path - start_package_dir_path)[0]
+                if not self.list.check_exits(name=name):
+                    
+                    dir_path = f"{self.current_directory}/packages"
+                    file = tarfile.open(path) 
+                    file.extractall(dir_path) 
+                    file.close()
+                    
+                    # move template folder
+                    package_templates_dir = f"{self.current_directory}/templates/{name}"
+                    shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
+                    shutil.rmtree(f"{dir_path}/{name}/templates")
+                    
+                    # move static folder
+                    package_static_dir = f"{self.current_directory}/static/{name}"
+                    shutil.copytree(f"{dir_path}/{name}/static", package_static_dir)
+                    shutil.rmtree(f"{dir_path}/{name}/static")
+                    
+                    # Get properties from package.ini
+                    package_config = configparser.ConfigParser()
+                    package_config.read(f"{dir_path}/{name}/package.ini")
+                            
+                    self.list.add_package_to_list(package_config=package_config)
+                    print(f"Packag {name} imported")
+                else:
+                    print("Package alredy installed")
+                shutil.rmtree(f"{self.current_directory}/temp/{name}")
+            else:
+                print("File not found")
+        
     
     @staticmethod
     def on_rm_error(func, path, exc_info) -> None:
@@ -118,7 +164,7 @@ class PackageManager():
                 if package_name and package_version != None:
                     pattern = r"[!@#$%^&*(),?\":{}|<>]"
                     if re.search(pattern, package_name) or re.search(pattern, package_version):
-                        error = True
+                        pass
                     else:
                         if not self.list.check_exits(package_name):
                             # add package to list
@@ -255,8 +301,7 @@ class PackageManager():
                 package_module = importlib.util.spec_from_file_location(package_file.replace(".py", ""), f"{package_folder}/{package_file}")
                 package = importlib.util.module_from_spec(package_module)
                 package_module.loader.exec_module(package)
-                module_function = [func for func in dir(package) if not func.startswith('__')][-1]
-                getattr(package, module_function)(app)
+                getattr(package, "main")(app)
                 
         # run server using data from run.ini
         server_config = configparser.ConfigParser()
@@ -524,6 +569,7 @@ class PackageManager():
     def help_message() -> dict:
         message_data = {
             "install": "Install package from USCServer and GitHub",
+            "import": "Import a package from tar.gz file",
             "remove": "Remove package",
             "refresh": "Refrash packages data",
             "list": "Get list installed packages",
