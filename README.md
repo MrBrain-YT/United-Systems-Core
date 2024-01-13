@@ -1,11 +1,10 @@
 <p align="center">
   <img src="USC.png" alt="Sublime's custom image"/>
-  <h2 align="center">Project under development</h2>
 </p>
 
 # United Systems Core
 
-United Systems Core - system designed to simplify the process of creating, managing, and integrating Python packages for the Flask web framework, intended for managing IoT devices.
+United Systems Core is a system designed to simplify the process of creating, managing and integrating Python packages for the Flask web framework, designed for managing IoT devices and creating various web services.
 
 ## Commands for controll
 - `install`: Install a package from USCServer or GitHub.
@@ -16,6 +15,12 @@ United Systems Core - system designed to simplify the process of creating, manag
     or
     ```bash
     usc install "https://github.com/autor/repo.git"
+    ```
+
+- `import`: Import a package from `tar.gz` file
+
+    ```bash
+    usc import "path/to/you.tar.gz"
     ```
     
 - `remove`: Remove a package.
@@ -57,6 +62,10 @@ United Systems Core - system designed to simplify the process of creating, manag
 
     ```bash
     usc templates
+- `static`: Open the static folder.
+
+    ```bash
+    usc static
 - `server`: Set data for the server from which packages are downloaded.
         
     ```bash
@@ -94,23 +103,23 @@ To create a package, you need to follow certain rules:
     
     - The URL path to your package should ideally be written according to this principle ```/package_name/...``` to avoid conflicts between different packages.
 
-        ```bash
+        ```python
         @app.route('/package_name/...', methods = ['GET'])
         ```
     - To add an HTML page, you need to open the "templates" directory using the command
         ```bash
-        usc templates "package_name"
+        usc templates
         ```
         
         There, you need to find the directory of your package and place your HTML files in it. To use your HTML file in the render_template function, you need to specify the path as ```/package_name/test.html```.
         ```python
-        return render_template("package_name/test.html")
+        return render_template("test/test.html")
         ```
 
 - To add JS and CSS scripts, you can use the "static" folder in your package directory.
 To open the "static" directory, use the command:
     ```bash
-    usc static "package_name"
+    usc static
     ```
     
     
@@ -124,9 +133,14 @@ To open the "static" directory, use the command:
     - It should accept the argument "app"
 
         ```python
-        def test(app:Flask):
+        def main(app:Flask):
         ```
-    - It should run the last specified function whose name does not contain "__"
+    - It should run a function whose name is main
+
+- To import custom modules, you should use the following structure:
+    ```python
+    import packages.package_name.you_module
+    ```
 
 
 ## Example package for USC
