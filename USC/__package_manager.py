@@ -8,7 +8,8 @@ import os
 import re
 import tarfile
 import stat
-from subprocess import call, Popen
+import sys
+from subprocess import call, Popen, check_call
 import importlib
 import platform
 
@@ -279,6 +280,23 @@ class PackageManager():
         
         return table.table
     
+    # Import python lib
+    @staticmethod
+    def import_or_install_pylib(package):
+        try:
+            importlib.import_module(package)
+        except ImportError:
+            try:
+                check_call([sys.executable, '-m', 'pip', 'install', package], shell=False)
+            except:
+                pass
+        
+        try:
+            module = importlib.import_module(package)
+            globals()[package] = module
+        except ImportError:
+            pass
+        
     # run server
     def run(self, package:str=None) -> None:
         app = Flask("United Systems Core",
@@ -300,8 +318,24 @@ class PackageManager():
             for package_file in package_files:
                 package_module = importlib.util.spec_from_file_location(package_file.replace(".py", ""), f"{package_folder}/{package_file}")
                 package = importlib.util.module_from_spec(package_module)
-                package_module.loader.exec_module(package)
+                try:
+                    package_module.loader.exec_module(package)
+                except ModuleNotFoundError as e:
+                    self.import_or_install_pylib(e.name)
+                    
+                # check import 
+                try:
+                    package_module = importlib.util.spec_from_file_location(package_file.replace(".py", ""), f"{package_folder}/{package_file}")
+                    package = importlib.util.module_from_spec(package_module)
+                    package_module.loader.exec_module(package)
+                except ModuleNotFoundError as e:
+                    print(f"Package not run because module '{e.name}' was not found in {package} package")
+                    break
+                
                 getattr(package, "main")(app)
+                    
+                    
+                    
                 
         # run server using data from run.ini
         server_config = configparser.ConfigParser()
