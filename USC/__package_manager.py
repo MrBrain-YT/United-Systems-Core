@@ -75,6 +75,8 @@ class PackageManager():
                 file.close()
                 os.remove(f'{self.current_directory}/temp/{name}.tar.gz')
                 
+                check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
+                
                 # move template folder
                 package_templates_dir = f"{self.current_directory}/templates/{name}"
                 shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
@@ -117,6 +119,8 @@ class PackageManager():
                     file = tarfile.open(path) 
                     file.extractall(dir_path) 
                     file.close()
+                    
+                    check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                     
                     # move template folder
                     package_templates_dir = f"{self.current_directory}/templates/{name}"
@@ -180,6 +184,8 @@ class PackageManager():
                             shutil.rmtree(f"{package_dir_path}/static")
                             # move dir to packages
                             shutil.move(package_dir_path, f"{self.current_directory}/packages")
+                            # Install requirements python libs
+                            check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{package_name}/requirements.txt"], shell=False)
                         else:
                             print("\nPackage alredy exits")          
                 else:
@@ -214,6 +220,7 @@ class PackageManager():
                 packages = [folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")]
                 # Removing packages
                 for package in packages:
+                    check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{package}/requirements.txt"], shell=False)
                     self.list.remove_package_from_list(name=package)
                     shutil.rmtree(f"{self.current_directory}/packages/{package}")
                     shutil.rmtree(f"{self.current_directory}/templates/{package}")
@@ -223,13 +230,14 @@ class PackageManager():
             
             # remove package if package in packages.ini
             elif self.list.check_exits(name=name):
-                self.list.remove_package_from_list(name=name)
+                check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                 if os.path.exists(f"{self.current_directory}/packages/{name}"):
                     shutil.rmtree(f"{self.current_directory}/packages/{name}")
                 if os.path.exists(f"{self.current_directory}/templates/{name}"):
                     shutil.rmtree(f"{self.current_directory}/templates/{name}")
                 if os.path.exists(f"{self.current_directory}/static/{name}"):
                     shutil.rmtree(f"{self.current_directory}/static/{name}")
+                self.list.remove_package_from_list(name=name)
                 print(f"Package {name} removed")
             
             # package not found
@@ -254,6 +262,10 @@ class PackageManager():
                     ini_file.write(f"[INFO]")
                     ini_file.write(f"\nname = {name}")
                     ini_file.write(f"\nversion = {package_version}")
+                
+                # creating new requirements file
+                with open(f"{self.current_directory}/packages/{name}/requirements.txt", "w") as ini_file:
+                    pass
                 
                 # Add package to packages.ini file
                 package_config = configparser.ConfigParser()
@@ -507,6 +519,8 @@ class PackageManager():
                 # checking static folder
                 if not os.path.exists(f"{self.current_directory}/static/{file}"):
                     os.mkdir(f"{self.current_directory}/static/{file}")
+                    
+                check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{file}/requirements.txt"], shell=False)
                     
                 # Add package to list 
                 self.list.add_package_to_list(package_config=package_config)
