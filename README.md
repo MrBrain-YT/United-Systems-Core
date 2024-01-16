@@ -27,7 +27,7 @@ United Systems Core is a system designed to simplify the process of creating, ma
 
     ```bash
     usc remove "package_name"
-- `refresh`: Refresh package data.
+- `refresh`: Refresh package data and install packages dependencies.
 
     ```bash
     usc refresh
@@ -141,6 +141,8 @@ To open the "static" directory, use the command:
     ```python
     import packages.package_name.you_module
     ```
+
+- In each package, there is a `requirements.txt` file that contains the necessary libraries for the package to function. These libraries are automatically downloaded when the package is installed or when the package list is refreshed using the `refresh` command. When a package is removed using the `remove` command, the associated libraries are also removed. If two packages use the same library, it's important to update the package list after removing a package to ensure that the list reflects the correct dependencies.
 
 
 ## Example package for USC

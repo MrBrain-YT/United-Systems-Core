@@ -49,7 +49,7 @@ if len(sys.argv) > 1:
         case "refresh":
             Manager.refresh()
             if len(sys_args) > 1:
-                print(Fore.RED + "Warning! Unknown arguments entered")
+                print(Fore.YELLOW + "Warning! Unknown arguments entered")
         
         case "create":
             if len(sys_args) > 1:
@@ -93,26 +93,36 @@ if len(sys.argv) > 1:
                 print(Fore.YELLOW + "Warning! Unknown arguments entered")
                 
         case "templates":
-            if len(sys_args) > 1:
+            if len(sys_args) == 2:
                 Manager.templates(package=sys_args[1])
+            elif len(sys_args) > 2:
+                print(Fore.YELLOW + "Warning! Unknown arguments entered")
             else:
                 Manager.templates()
             
         case "static":
-            if len(sys_args) > 1:
+            if len(sys_args) == 2:
                 Manager.static(package=sys_args[1])
+            elif len(sys_args) > 2:
+                print(Fore.YELLOW + "Warning! Unknown arguments entered")
             else:
                 Manager.static()
                 
         case "server":
-            if len(sys_args) > 1:
+            if len(sys_args) == 2:
                 Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
+            elif len(sys_args) > 2:
+                Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
+                print(Fore.YELLOW + "Warning! Unknown arguments entered")
             else:
                 print(Fore.RED + "Please enter ip and port")
 
         case "config":
-            if len(sys_args) > 1:
+            if len(sys_args) == 2:
                 Manager.set_server_config(server_info=sys_args[1], is_my_server=True)
+            elif len(sys_args) > 2:
+                Manager.set_server_config(server_info=sys_args[1], is_my_server=True)
+                print(Fore.YELLOW + "Warning! Unknown arguments entered")
             else:
                 print(Fore.RED + "Please enter ip and port")
         
