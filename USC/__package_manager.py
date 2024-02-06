@@ -162,7 +162,7 @@ class PackageManager():
             git.Repo.clone_from(url, dir_path, progress=Progress())
             
             # Check package
-            package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")][1]}"
+            package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if folder != ".git" and os.path.isdir(f"{dir_path}/{folder}")][0]}"
             if os.path.exists(f"{package_dir_path}/package.ini"):
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{package_dir_path}/package.ini")
@@ -200,16 +200,19 @@ class PackageManager():
             return None
 
         # delete .git folder
-        for i in os.listdir(dir_path):
-            if i.endswith('git'):
-                tmp = os.path.join(dir_path, i)
-                # We want to unhide the .git folder before unlinking it.
-                while True:
-                    call(['attrib', '-H', tmp])
-                    break
-                shutil.rmtree(tmp, onerror=self.on_rm_error)
-        # delete git folder
-        shutil.rmtree(dir_path)
+        if platform.system() == "Windows":
+            for i in os.listdir(dir_path):
+                if i.endswith('git'):
+                    tmp = os.path.join(dir_path, i)
+                    # We want to unhide the .git folder before unlinking it.
+                    while True:
+                        call(['attrib', '-H', tmp])
+                        break
+                    shutil.rmtree(tmp, onerror=self.on_rm_error)
+                    shutil.rmtree(dir_path)
+        else:
+            pass
+            call(['rm', '-rf', dir_path])
 
     
     # remove package 
@@ -223,7 +226,12 @@ class PackageManager():
                 packages = [folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")]
                 # Removing packages
                 for package in packages:
-                    check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{package}/requirements.txt"], shell=False)
+                    
+                    with open(f"{self.current_directory}/packages/{package}/requirements.txt", "r") as require:
+                        text = require.read()
+                    if text == "":
+                        check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{package}/requirements.txt"], shell=False)
+                        
                     self.list.remove_package_from_list(name=package)
                     shutil.rmtree(f"{self.current_directory}/packages/{package}")
                     shutil.rmtree(f"{self.current_directory}/templates/{package}")
@@ -233,7 +241,10 @@ class PackageManager():
             
             # remove package if package in packages.ini
             elif self.list.check_exits(name=name):
-                check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
+                with open(f"{self.current_directory}/packages/{name}/requirements.txt", "r") as require:
+                        text = require.read()
+                if text == "":
+                    check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                 if os.path.exists(f"{self.current_directory}/packages/{name}"):
                     shutil.rmtree(f"{self.current_directory}/packages/{name}")
                 if os.path.exists(f"{self.current_directory}/templates/{name}"):
@@ -583,17 +594,20 @@ class PackageManager():
                 shutil.copy2(full_path, f"{self.current_directory}/static")
                 
         # delete .git folder
-        for i in os.listdir(f"{dir_path}/update"):
-            if i.endswith('git'):
-                tmp = os.path.join(f"{dir_path}/update", i)
-                # We want to unhide the .git folder before unlinking it.
-                while True:
-                    call(['attrib', '-H', tmp])
-                    break
-                shutil.rmtree(tmp, onerror=self.on_rm_error)
-        # delete update folder
-        shutil.rmtree(f"{dir_path}/update")
-        
+        if platform.system() == "Windows":
+            for i in os.listdir(f"{dir_path}/update"):
+                if i.endswith('git'):
+                    tmp = os.path.join(f"{dir_path}/update", i)
+                    # We want to unhide the .git folder before unlinking it.
+                    while True:
+                        call(['attrib', '-H', tmp])
+                        break
+                    shutil.rmtree(tmp, onerror=self.on_rm_error)
+                    shutil.rmtree(dir_path)
+        else:
+            # delete update folder
+            call(['rm', '-rf', f"{dir_path}/update"])
+
         print(Fore.GREEN + "Latest version installed")
                 
                 
@@ -631,6 +645,7 @@ class PackageManager():
             "export": "Export package to curent opened in terminal folder",
             "code": "Open packages or package in IDE (vs code, vim)",
             "templates": "Open templates folder",
+            "static": "Open folder for static files",
             "server": "Set data for the server from which packages are downloaded",
             "config": "Set data for the server on which the packages are launched",
             "-h": "Get help message",
