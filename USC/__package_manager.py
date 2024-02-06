@@ -14,6 +14,7 @@ import importlib
 import platform
 
 import git
+from colorama import Fore
 from pyfiglet import Figlet
 from tqdm import tqdm
 from flask import Flask
@@ -75,6 +76,8 @@ class PackageManager():
                 file.close()
                 os.remove(f'{self.current_directory}/temp/{name}.tar.gz')
                 
+                check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
+                
                 # move template folder
                 package_templates_dir = f"{self.current_directory}/templates/{name}"
                 shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
@@ -90,10 +93,11 @@ class PackageManager():
                 package_config.read(f"{dir_path}/{name}/package.ini")
                         
                 self.list.add_package_to_list(package_config=package_config)
+                print(Fore.GREEN + f"Package {name} installed")
             else:
-                print("Package not found in server")
+                print(Fore.RED + "Package not found in server")
         else:
-            print("Package alredy exist")
+            print(Fore.RED + "Package alredy exist")
             
     # import package
     def import_package(self, paths:list) -> None:
@@ -118,6 +122,8 @@ class PackageManager():
                     file.extractall(dir_path) 
                     file.close()
                     
+                    check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
+                    
                     # move template folder
                     package_templates_dir = f"{self.current_directory}/templates/{name}"
                     shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
@@ -133,12 +139,12 @@ class PackageManager():
                     package_config.read(f"{dir_path}/{name}/package.ini")
                             
                     self.list.add_package_to_list(package_config=package_config)
-                    print(f"Packag {name} imported")
+                    print(Fore.GREEN + f"Packag {name} imported")
                 else:
-                    print("Package alredy installed")
+                    print(Fore.RED + "Package alredy installed")
                 shutil.rmtree(f"{self.current_directory}/temp/{name}")
             else:
-                print("File not found")
+                print(Fore.RED + "File not found")
         
     
     @staticmethod
@@ -156,7 +162,7 @@ class PackageManager():
             git.Repo.clone_from(url, dir_path, progress=Progress())
             
             # Check package
-            package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")][1]}"
+            package_dir_path = f"{dir_path}/{[folder for folder in os.listdir(dir_path) if folder != ".git" and os.path.isdir(f"{dir_path}/{folder}")][0]}"
             if os.path.exists(f"{package_dir_path}/package.ini"):
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{package_dir_path}/package.ini")
@@ -180,27 +186,33 @@ class PackageManager():
                             shutil.rmtree(f"{package_dir_path}/static")
                             # move dir to packages
                             shutil.move(package_dir_path, f"{self.current_directory}/packages")
+                            # Install requirements python libs
+                            check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{package_name}/requirements.txt"], shell=False)
+                            print(Fore.GREEN + f"Package {package_name} installed")
                         else:
-                            print("\nPackage alredy exits")          
+                            print(Fore.RED + "\nPackage alredy exits")          
                 else:
-                    print("\nInvalid package")
+                    print(Fore.RED + "\nInvalid package")
             else:
-                print("\nPackage does not contain package.ini")
+                print(Fore.RED + "\nPackage does not contain package.ini")
         else:
-            print("url not valid")
+            print(Fore.RED + "Url not valid")
             return None
 
         # delete .git folder
-        for i in os.listdir(dir_path):
-            if i.endswith('git'):
-                tmp = os.path.join(dir_path, i)
-                # We want to unhide the .git folder before unlinking it.
-                while True:
-                    call(['attrib', '-H', tmp])
-                    break
-                shutil.rmtree(tmp, onerror=self.on_rm_error)
-        # delete git folder
-        shutil.rmtree(dir_path)
+        if platform.system() == "Windows":
+            for i in os.listdir(dir_path):
+                if i.endswith('git'):
+                    tmp = os.path.join(dir_path, i)
+                    # We want to unhide the .git folder before unlinking it.
+                    while True:
+                        call(['attrib', '-H', tmp])
+                        break
+                    shutil.rmtree(tmp, onerror=self.on_rm_error)
+                    shutil.rmtree(dir_path)
+        else:
+            pass
+            call(['rm', '-rf', dir_path])
 
     
     # remove package 
@@ -214,27 +226,37 @@ class PackageManager():
                 packages = [folder for folder in os.listdir(dir_path) if os.path.isdir(f"{dir_path}/{folder}")]
                 # Removing packages
                 for package in packages:
+                    
+                    with open(f"{self.current_directory}/packages/{package}/requirements.txt", "r") as require:
+                        text = require.read()
+                    if text == "":
+                        check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{package}/requirements.txt"], shell=False)
+                        
                     self.list.remove_package_from_list(name=package)
                     shutil.rmtree(f"{self.current_directory}/packages/{package}")
                     shutil.rmtree(f"{self.current_directory}/templates/{package}")
                     shutil.rmtree(f"{self.current_directory}/static/{package}")
-                    print(f"Package {package} removed")
+                    print(Fore.GREEN + f"Package {package} removed")
                 break
             
             # remove package if package in packages.ini
             elif self.list.check_exits(name=name):
-                self.list.remove_package_from_list(name=name)
+                with open(f"{self.current_directory}/packages/{name}/requirements.txt", "r") as require:
+                        text = require.read()
+                if text == "":
+                    check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                 if os.path.exists(f"{self.current_directory}/packages/{name}"):
                     shutil.rmtree(f"{self.current_directory}/packages/{name}")
                 if os.path.exists(f"{self.current_directory}/templates/{name}"):
                     shutil.rmtree(f"{self.current_directory}/templates/{name}")
                 if os.path.exists(f"{self.current_directory}/static/{name}"):
                     shutil.rmtree(f"{self.current_directory}/static/{name}")
-                print(f"Package {name} removed")
+                self.list.remove_package_from_list(name=name)
+                print(Fore.GREEN + f"Package {name} removed")
             
             # package not found
             else:
-                print("Package not found")
+                print(Fore.RED + "Package not found")
     
     # create package
     def create(self, names:list[str]) -> None:
@@ -255,12 +277,17 @@ class PackageManager():
                     ini_file.write(f"\nname = {name}")
                     ini_file.write(f"\nversion = {package_version}")
                 
+                # creating new requirements file
+                with open(f"{self.current_directory}/packages/{name}/requirements.txt", "w") as ini_file:
+                    pass
+                
                 # Add package to packages.ini file
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{name}/package.ini")
                 self.list.add_package_to_list(package_config=package_config)
+                print(Fore.GREEN + f"Package {name} created")
             else:
-                print("Package alredy exits")
+                print(Fore.RED + "Package alredy exits")
 
     # get packages list
     def get_list(self) -> str:
@@ -290,7 +317,6 @@ class PackageManager():
                 check_call([sys.executable, '-m', 'pip', 'install', package], shell=False)
             except:
                 pass
-        
         try:
             module = importlib.import_module(package)
             globals()[package] = module
@@ -329,7 +355,7 @@ class PackageManager():
                     package = importlib.util.module_from_spec(package_module)
                     package_module.loader.exec_module(package)
                 except ModuleNotFoundError as e:
-                    print(f"Package not run because module '{e.name}' was not found in {package} package")
+                    print(Fore.YELLOW + f"Package not run because module '{e.name}' was not found in {package} package")
                     break
                 
                 getattr(package, "main")(app)
@@ -365,12 +391,12 @@ class PackageManager():
                     # Removing temp temoplates file in package folder
                     shutil.rmtree(f"{pack_dir}/templates")
                     shutil.rmtree(f"{pack_dir}/static")
-                    print("Package exported")
+                    print(Fore.GREEN + "Package exported")
                     
                 except Exception as e:
-                    print(f"Error:\n{e}")
+                    print(Fore.RED + f"Error:\n{e}")
             else:
-                "Package not found"
+                print(Fore.RED + "Package not found")
             
     # open package in IDE
     def code(self, name:str, ide:str=None, no_package:bool=False) -> None:
@@ -383,14 +409,14 @@ class PackageManager():
                 # vscode
                 if shutil.which('code') != None:
                     Popen([shutil.which('code'), pack_dir], shell=False)
-                    print("Opened with VS Code")
+                    print(Fore.GREEN + "Opened with VS Code")
                 # vim
                 elif shutil.which('vim') != None:
                     Popen([shutil.which('vim'), pack_dir], shell=False)
-                    print("Opened with Vim")
+                    print(Fore.GREEN + "Opened with Vim")
                 # no ide
                 else:
-                    print("IDE not found")
+                    print(Fore.RED + "IDE not found")
                 
             else:
                 # Manually getting the IDE
@@ -399,21 +425,21 @@ class PackageManager():
                 if ide == "vscode":
                     if shutil.which('code') != None:
                         Popen([shutil.which('code'), pack_dir], shell=False)
-                        print("Opened with VS Code")
+                        print(Fore.GREEN + "Opened with VS Code")
                     else:
-                        "VS Code not found"
+                        print(Fore.RED + "VS Code not found")
                 # vim
                 elif ide == "vim":
                     if shutil.which('vim') != None:
                         Popen([shutil.which('vim'), pack_dir], shell=False)
-                        print("Opened with Vim")
+                        print(Fore.GREEN + "Opened with Vim")
                     else:
-                        "Vim not found"
+                        print(Fore.RED + "Vim not found")
                 # no ide
                 else:
-                    print("IDE not selected")
+                    print(Fore.RED + "IDE not selected")
         else:
-            print("Package not found")
+            print(Fore.RED + "Package not found")
             
     def templates(self, package:str=None) -> None:
         if package != None:
@@ -421,7 +447,7 @@ class PackageManager():
             if self.list.check_exits(package):
                 path = f"{self.current_directory}/templates/{package}"
             else:
-                print("Package not found")
+                print(Fore.RED + "Package not found")
                 return None
         else:
             path = f"{self.current_directory}/templates"
@@ -440,7 +466,7 @@ class PackageManager():
             if self.list.check_exits(package):
                 path = f"{self.current_directory}/static/{package}"
             else:
-                print("Package not found")
+                print(Fore.RED + "Package not found")
                 return None
         else:
             path = f"{self.current_directory}/static"
@@ -508,6 +534,8 @@ class PackageManager():
                 if not os.path.exists(f"{self.current_directory}/static/{file}"):
                     os.mkdir(f"{self.current_directory}/static/{file}")
                     
+                check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{file}/requirements.txt"], shell=False)
+                    
                 # Add package to list 
                 self.list.add_package_to_list(package_config=package_config)
             else:
@@ -566,16 +594,21 @@ class PackageManager():
                 shutil.copy2(full_path, f"{self.current_directory}/static")
                 
         # delete .git folder
-        for i in os.listdir(f"{dir_path}/update"):
-            if i.endswith('git'):
-                tmp = os.path.join(f"{dir_path}/update", i)
-                # We want to unhide the .git folder before unlinking it.
-                while True:
-                    call(['attrib', '-H', tmp])
-                    break
-                shutil.rmtree(tmp, onerror=self.on_rm_error)
-        # delete update folder
-        shutil.rmtree(f"{dir_path}/update")
+        if platform.system() == "Windows":
+            for i in os.listdir(f"{dir_path}/update"):
+                if i.endswith('git'):
+                    tmp = os.path.join(f"{dir_path}/update", i)
+                    # We want to unhide the .git folder before unlinking it.
+                    while True:
+                        call(['attrib', '-H', tmp])
+                        break
+                    shutil.rmtree(tmp, onerror=self.on_rm_error)
+                    shutil.rmtree(dir_path)
+        else:
+            # delete update folder
+            call(['rm', '-rf', f"{dir_path}/update"])
+
+        print(Fore.GREEN + "Latest version installed")
                 
                 
     def update(self):
@@ -595,9 +628,9 @@ class PackageManager():
                     if int(version[2]) > int(local_version[2]):
                         self.update_algorithm()
                     else:
-                        print("Latest version already installed")
+                        print(Fore.RED + "Latest version already installed")
         else:
-            print("Url not valid")
+            print(Fore.RED + "Url not valid")
             
     @staticmethod
     def help_message() -> dict:
@@ -612,6 +645,7 @@ class PackageManager():
             "export": "Export package to curent opened in terminal folder",
             "code": "Open packages or package in IDE (vs code, vim)",
             "templates": "Open templates folder",
+            "static": "Open folder for static files",
             "server": "Set data for the server from which packages are downloaded",
             "config": "Set data for the server on which the packages are launched",
             "-h": "Get help message",
