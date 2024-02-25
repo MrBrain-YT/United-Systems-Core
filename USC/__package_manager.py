@@ -70,13 +70,32 @@ class PackageManager():
                         bar.update(size)
                         
                 # extracting file
-                dir_path = f"{self.current_directory}/packages"
-                file = tarfile.open(f"{self.current_directory}/temp/{name}.tar.gz") 
+                dir_path = f"{self.current_directory}/temp/{name}"
+                os.makedirs(dir_path)
+                file = tarfile.open(filename) 
                 file.extractall(dir_path) 
                 file.close()
-                os.remove(f'{self.current_directory}/temp/{name}.tar.gz')
+                os.remove(filename)
                 
-                check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
+                # check os compatibility
+                package_config = configparser.ConfigParser()
+                package_config.read(f"{dir_path}/{name}/package.ini")
+                if (package_config["INFO"].get("os").lower() == "any" or package_config["INFO"].get("os").lower() == platform.system().lower()):
+                    pass
+                else:
+                    while True:
+                        agree = input(Fore.RED + "The package is not compatible with your operating system, install it anyway (Y/n): ").lower()
+                        if agree == "y": break
+                        elif agree == "n":
+                            shutil.rmtree(dir_path)
+                            return 0
+                        else: continue
+                        
+                require_txt = f"{self.current_directory}/temp/{name}/requirements.txt"
+                with open(require_txt, "r") as require:
+                        text = require.read().replace("\\n", "").replace(" ", "")
+                if text != "":
+                    check_call([sys.executable, "-m", "pip", "install", "-r", require_txt], shell=False)
                 
                 # move template folder
                 package_templates_dir = f"{self.current_directory}/templates/{name}"
@@ -88,16 +107,20 @@ class PackageManager():
                 shutil.copytree(f"{dir_path}/{name}/static", package_static_dir)
                 shutil.rmtree(f"{dir_path}/{name}/static")
                 
-                # Get properties from package.ini
-                package_config = configparser.ConfigParser()
-                package_config.read(f"{dir_path}/{name}/package.ini")
-                        
+                # move package folder
+                package_dir = f"{self.current_directory}/packages/{name}"
+                shutil.copytree(f"{dir_path}/{name}", package_dir)
+                shutil.rmtree(f"{dir_path}")
+                      
                 self.list.add_package_to_list(package_config=package_config)
+                shutil.rmtree(f"{self.current_directory}/temp/{name}")      
+                          
                 print(Fore.GREEN + f"Package {name} installed")
             else:
                 print(Fore.RED + "Package not found in server")
         else:
             print(Fore.RED + "Package alredy exist")
+        
             
     # import package
     def import_package(self, paths:list) -> None:
@@ -117,29 +140,52 @@ class PackageManager():
                 name = list(end_package_dir_path - start_package_dir_path)[0]
                 if not self.list.check_exits(name=name):
                     
-                    dir_path = f"{self.current_directory}/packages"
-                    file = tarfile.open(path) 
-                    file.extractall(dir_path) 
-                    file.close()
+                    dir_path = f"{self.current_directory}/temp/{name}"
+                    # file = tarfile.open(path) 
+                    # file.extractall(dir_path)
+                    # file.close()
                     
-                    check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
-                    
-                    # move template folder
-                    package_templates_dir = f"{self.current_directory}/templates/{name}"
-                    shutil.copytree(f"{dir_path}/{name}/templates", package_templates_dir)
-                    shutil.rmtree(f"{dir_path}/{name}/templates")
-                    
-                    # move static folder
-                    package_static_dir = f"{self.current_directory}/static/{name}"
-                    shutil.copytree(f"{dir_path}/{name}/static", package_static_dir)
-                    shutil.rmtree(f"{dir_path}/{name}/static")
-                    
-                    # Get properties from package.ini
+                    # check os compatibility
+                    config_patch = f"{dir_path}/package.ini"
                     package_config = configparser.ConfigParser()
-                    package_config.read(f"{dir_path}/{name}/package.ini")
-                            
-                    self.list.add_package_to_list(package_config=package_config)
-                    print(Fore.GREEN + f"Packag {name} imported")
+                    if (os.path.exists(config_patch)):
+                        package_config.read(config_patch)
+                        if (package_config["INFO"].get("os").lower() == "any" or package_config["INFO"].get("os").lower() == platform.system().lower()):
+                            pass
+                        else:
+                            while True:
+                                agree = input(Fore.RED + "The package is not compatible with your operating system, install it anyway (Y/n): ").lower()
+                                if agree == "y": break
+                                elif agree == "n":
+                                    shutil.rmtree(dir_path)
+                                    print(Fore.RED + f"Package {name} not installed")
+                                    return 0
+                                else: continue
+                        
+                        require_txt = f"{self.current_directory}/temp/{name}/requirements.txt"
+                        with open(require_txt, "r") as require:
+                            text = require.read().replace("\\n", "").replace(" ", "")
+                        if text != "":
+                            check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
+                        
+                        # move template folder
+                        package_templates_dir = f"{self.current_directory}/templates/{name}"
+                        shutil.copytree(f"{dir_path}/templates", package_templates_dir)
+                        shutil.rmtree(f"{dir_path}/templates")
+                        
+                        # move static folder
+                        package_static_dir = f"{self.current_directory}/static/{name}"
+                        shutil.copytree(f"{dir_path}/static", package_static_dir)
+                        shutil.rmtree(f"{dir_path}/static")
+                        
+                        # move package folder
+                        package_dir = f"{self.current_directory}/packages/{name}"
+                        shutil.copytree(f"{dir_path}", package_dir)
+                                
+                        self.list.add_package_to_list(package_config=package_config)
+                        print(Fore.GREEN + f"Package {name} imported")
+                    else:
+                        print(Fore.RED + "package.ini file not found")
                 else:
                     print(Fore.RED + "Package alredy installed")
                 shutil.rmtree(f"{self.current_directory}/temp/{name}")
@@ -168,14 +214,33 @@ class PackageManager():
                 package_config.read(f"{package_dir_path}/package.ini")
                 package_name = package_config["INFO"].get("name")
                 package_version = package_config["INFO"].get("version")
-                if package_name and package_version != None:
+                package_os = package_config["INFO"].get("os")
+                if package_name and package_version != None and package_os != None:
                     pattern = r"[!@#$%^&*(),?\":{}|<>]"
                     if re.search(pattern, package_name) or re.search(pattern, package_version):
                         pass
                     else:
                         if not self.list.check_exits(package_name):
-                            # add package to list
-                            self.list.add_package_to_list(package_config=package_config)
+                            
+                            # check os compatibility
+                            if (package_os.lower() == "any" or package_os.lower() == platform.system().lower()):
+                                pass
+                            else:
+                                while True:
+                                    agree = input(Fore.RED + "The package is not compatible with your operating system, install it anyway (Y/n): ").lower()
+                                    if agree == "y": break
+                                    elif agree == "n":
+                                        shutil.rmtree(dir_path)
+                                        return 0
+                                    else: continue
+                            
+                            # Install requirements python libs
+                            require_txt = f"{dir_path}/{package_name}/requirements.txt"
+                            with open(require_txt, "r") as require:
+                                text = require.read().replace("\\n", "").replace(" ", "")
+                            if text != "":
+                                check_call([sys.executable, "-m", "pip", "install", "-r", f"{package_dir_path}/requirements.txt"], shell=False)
+                                
                             # move templates dir
                             package_template_folder = f"{self.current_directory}/templates/{package_name}"
                             shutil.copytree(f"{package_dir_path}/templates", package_template_folder)
@@ -186,8 +251,8 @@ class PackageManager():
                             shutil.rmtree(f"{package_dir_path}/static")
                             # move dir to packages
                             shutil.move(package_dir_path, f"{self.current_directory}/packages")
-                            # Install requirements python libs
-                            check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{package_name}/requirements.txt"], shell=False)
+                            # add package to list
+                            self.list.add_package_to_list(package_config=package_config)
                             print(Fore.GREEN + f"Package {package_name} installed")
                         else:
                             print(Fore.RED + "\nPackage alredy exits")          
@@ -228,8 +293,8 @@ class PackageManager():
                 for package in packages:
                     
                     with open(f"{self.current_directory}/packages/{package}/requirements.txt", "r") as require:
-                        text = require.read()
-                    if text == "":
+                        text = require.read().replace("\\n", "").replace(" ", "")
+                    if text != "":
                         check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{package}/requirements.txt"], shell=False)
                         
                     self.list.remove_package_from_list(name=package)
@@ -242,8 +307,8 @@ class PackageManager():
             # remove package if package in packages.ini
             elif self.list.check_exits(name=name):
                 with open(f"{self.current_directory}/packages/{name}/requirements.txt", "r") as require:
-                        text = require.read()
-                if text == "":
+                        text = require.read().replace("\\n", "").replace(" ", "")
+                if text != "":
                     check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                 if os.path.exists(f"{self.current_directory}/packages/{name}"):
                     shutil.rmtree(f"{self.current_directory}/packages/{name}")
@@ -276,6 +341,7 @@ class PackageManager():
                     ini_file.write(f"[INFO]")
                     ini_file.write(f"\nname = {name}")
                     ini_file.write(f"\nversion = {package_version}")
+                    ini_file.write(f"\nos = any")
                 
                 # creating new requirements file
                 with open(f"{self.current_directory}/packages/{name}/requirements.txt", "w") as ini_file:
@@ -325,6 +391,7 @@ class PackageManager():
         
     # run server
     def run(self, package:str=None) -> None:
+        self.refresh()
         app = Flask("United Systems Core",
                     template_folder=f'{self.current_directory}/templates',
                     static_folder=f'{self.current_directory}/static')
@@ -522,7 +589,7 @@ class PackageManager():
             # Checking exist package.ini file
             if os.path.exists(f"{self.current_directory}/packages/{file}/package.ini"):
                 
-                # Open packages ini file
+                # Open package ini file
                 package_config = configparser.ConfigParser()
                 package_config.read(f"{self.current_directory}/packages/{file}/package.ini")
                 
@@ -534,7 +601,10 @@ class PackageManager():
                 if not os.path.exists(f"{self.current_directory}/static/{file}"):
                     os.mkdir(f"{self.current_directory}/static/{file}")
                     
-                check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{file}/requirements.txt"], shell=False)
+                with open(f"{self.current_directory}/packages/{file}/requirements.txt", "r") as require:
+                        text = require.read().replace("\\n", "").replace(" ", "")
+                if text != "":
+                    check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{file}/requirements.txt"], shell=False)
                     
                 # Add package to list 
                 self.list.add_package_to_list(package_config=package_config)
