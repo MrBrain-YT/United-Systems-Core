@@ -93,7 +93,7 @@ class PackageManager():
                         
                 require_txt = f"{self.current_directory}/temp/{name}/requirements.txt"
                 with open(require_txt, "r") as require:
-                        text = require.read().replace("\\n", "").replace(" ", "")
+                        text = require.read().replace("\n", "").replace(" ", "")
                 if text != "":
                     check_call([sys.executable, "-m", "pip", "install", "-r", require_txt], shell=False)
                 
@@ -164,7 +164,7 @@ class PackageManager():
                         
                         require_txt = f"{self.current_directory}/temp/{name}/requirements.txt"
                         with open(require_txt, "r") as require:
-                            text = require.read().replace("\\n", "").replace(" ", "")
+                            text = require.read().replace("\n", "").replace(" ", "")
                         if text != "":
                             check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                         
@@ -237,7 +237,7 @@ class PackageManager():
                             # Install requirements python libs
                             require_txt = f"{dir_path}/{package_name}/requirements.txt"
                             with open(require_txt, "r") as require:
-                                text = require.read().replace("\\n", "").replace(" ", "")
+                                text = require.read().replace("\n", "").replace(" ", "")
                             if text != "":
                                 check_call([sys.executable, "-m", "pip", "install", "-r", f"{package_dir_path}/requirements.txt"], shell=False)
                                 
@@ -293,7 +293,7 @@ class PackageManager():
                 for package in packages:
                     
                     with open(f"{self.current_directory}/packages/{package}/requirements.txt", "r") as require:
-                        text = require.read().replace("\\n", "").replace(" ", "")
+                        text = require.read().replace("\n", "").replace(" ", "")
                     if text != "":
                         check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{package}/requirements.txt"], shell=False)
                         
@@ -307,7 +307,7 @@ class PackageManager():
             # remove package if package in packages.ini
             elif self.list.check_exits(name=name):
                 with open(f"{self.current_directory}/packages/{name}/requirements.txt", "r") as require:
-                        text = require.read().replace("\\n", "").replace(" ", "")
+                        text = require.read().replace("\n", "").replace(" ", "")
                 if text != "":
                     check_call([sys.executable, "-m", "pip", "uninstall", "-r", f"{self.current_directory}/packages/{name}/requirements.txt"], shell=False)
                 if os.path.exists(f"{self.current_directory}/packages/{name}"):
@@ -602,7 +602,7 @@ class PackageManager():
                     os.mkdir(f"{self.current_directory}/static/{file}")
                     
                 with open(f"{self.current_directory}/packages/{file}/requirements.txt", "r") as require:
-                        text = require.read().replace("\\n", "").replace(" ", "")
+                        text = require.read().replace("\n", "").replace(" ", "")
                 if text != "":
                     check_call([sys.executable, "-m", "pip", "install", "-r", f"{self.current_directory}/packages/{file}/requirements.txt"], shell=False)
                     
