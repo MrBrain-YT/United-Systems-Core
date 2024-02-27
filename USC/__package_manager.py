@@ -405,6 +405,7 @@ class PackageManager():
         
         # Importing packages modules
         for package in packages:
+            package_name = package
             package_folder = f"{self.current_directory}/packages/{package}"
             package_files = [package for package in os.listdir(package_folder) 
                              if (".py" in package) and (not package.startswith('__'))]
@@ -425,7 +426,15 @@ class PackageManager():
                     print(Fore.YELLOW + f"Package not run because module '{e.name}' was not found in {package} package")
                     break
                 
-                getattr(package, "main")(app)
+                if (hasattr(package, "main")):
+                    try:
+                        getattr(package, "main")(app)
+                    except Exception as error:
+                        print(Fore.RED + f"An error was detected in the file: {Fore.MAGENTA}{package_folder}/{package_file}" + Fore.WHITE)
+                        print(f"{Fore.RED}|-- Package --> {Fore.MAGENTA}{package_name}")
+                        print(f"{Fore.RED}|-- Error --> {Fore.MAGENTA}" + str(error) + Fore.WHITE + "\n")
+                else:
+                    pass
                     
                     
                     
