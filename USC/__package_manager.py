@@ -321,7 +321,7 @@ class PackageManager():
             
             # package not found
             else:
-                print(Fore.RED + "Package not found")
+                print(Fore.RED + f"Package {name} not found")
     
     # create package
     def create(self, names:list[str]) -> None:
@@ -391,6 +391,7 @@ class PackageManager():
         
     # run server
     def run(self, package:str=None) -> None:
+        print("\n")
         self.refresh()
         app = Flask("United Systems Core",
                     template_folder=f'{self.current_directory}/templates',
@@ -467,12 +468,12 @@ class PackageManager():
                     # Removing temp temoplates file in package folder
                     shutil.rmtree(f"{pack_dir}/templates")
                     shutil.rmtree(f"{pack_dir}/static")
-                    print(Fore.GREEN + "Package exported")
+                    print(Fore.GREEN + f"Package {name} exported")
                     
                 except Exception as e:
                     print(Fore.RED + f"Error:\n{e}")
             else:
-                print(Fore.RED + "Package not found")
+                print(Fore.RED + f"Package {name} not found")
             
     # open package in IDE
     def code(self, name:str, ide:str=None, no_package:bool=False) -> None:
@@ -556,22 +557,41 @@ class PackageManager():
             Popen(["xdg-open", path])
     
     # set config file for local server and packages server
-    def set_server_config(self, server_info:str, is_my_server:bool) -> None:
+    def set_server_config(self, read:bool, server_info:str, is_my_server:bool) -> None:
         config = configparser.ConfigParser()
         config.read(f'{self.current_directory}/run.ini')
-        # Checking which parameter needs to be changed
-        if is_my_server:
-            host, port = server_info.split(":")
-            config['SERVER'] = {'host': host,
-                                'port': port}
-            with open(f'{self.current_directory}/run.ini', 'w') as configfile:
-                config.write(configfile)
+        if read:
+            if is_my_server:
+                print(f"{Fore.LIGHTMAGENTA_EX}Server --> {config["SERVER"].get("host")}:{config["SERVER"].get("port")}")
+            else:
+                print(f"{Fore.LIGHTMAGENTA_EX}Download server --> {config["DOWNLOAD"].get("host")}:{config["DOWNLOAD"].get("port")}")
         else:
-            host, port = server_info.split(":")
-            config['DOWNLOAD'] = {'host': host,
-                                'port': port}
-            with open(f'{self.current_directory}/run.ini', 'w') as configfile:
-                config.write(configfile)
+            # Checking which parameter needs to be changed
+            if is_my_server:
+                if len(server_info.split(":")) == 2:
+                    host, port = server_info.split(":")
+                    if host.replace(" ", "") != "" and port.replace(" ", "") != "":
+                        config['SERVER'] = {'host': host,
+                                        'port': port}
+                        with open(f'{self.current_directory}/run.ini', 'w') as configfile:
+                            config.write(configfile)
+                    else:
+                        print(f"{Fore.RED}Incorrect parameters were entered")
+                else:
+                    print(f"{Fore.RED}Incorrect parameters were entered")
+
+            else:
+                if len(server_info.split(":")) == 2:
+                    host, port = server_info.split(":") 
+                    if host.replace(" ", "") != "" and port.replace(" ", "") != "":
+                        config['DOWNLOAD'] = {'host': host,
+                                        'port': port}
+                        with open(f'{self.current_directory}/run.ini', 'w') as configfile:
+                            config.write(configfile)
+                    else:
+                        print(f"{Fore.RED}Incorrect parameters were entered")
+                else:
+                    print(f"{Fore.RED}Incorrect parameters were entered")
           
     # refresh packages folder
     def refresh(self) -> None:

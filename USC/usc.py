@@ -109,22 +109,22 @@ if len(sys.argv) > 1:
                 Manager.static()
                 
         case "server":
-            if len(sys_args) == 2:
-                Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
+            if len(sys_args) == 1:
+                Manager.set_server_config(read=True, server_info=sys_args[0], is_my_server=False)
+            elif len(sys_args) == 2:
+                Manager.set_server_config(read=False, server_info=sys_args[1], is_my_server=False)
             elif len(sys_args) > 2:
-                Manager.set_server_config(server_info=sys_args[1], is_my_server=False)
+                Manager.set_server_config(read=False, server_info=sys_args[1], is_my_server=False)
                 print(Fore.YELLOW + "Warning! Unknown arguments entered")
-            else:
-                print(Fore.RED + "Please enter ip and port")
 
         case "config":
-            if len(sys_args) == 2:
+            if len(sys_args) == 1:
+                Manager.set_server_config(read=True, server_info=sys_args[0], is_my_server=True)
+            elif len(sys_args) == 2:
                 Manager.set_server_config(server_info=sys_args[1], is_my_server=True)
             elif len(sys_args) > 2:
                 Manager.set_server_config(server_info=sys_args[1], is_my_server=True)
                 print(Fore.YELLOW + "Warning! Unknown arguments entered")
-            else:
-                print(Fore.RED + "Please enter ip and port")
         
         case "-h":
             print(hello_message)
