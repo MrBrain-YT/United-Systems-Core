@@ -98,6 +98,8 @@ To create a package, you need to follow certain rules:
     ```bash
     usc code "package_name"
     ```
+    
+    When you create a package, you will automatically create a python file with an example of the package home page
 
 - After you have created a package template and started modifying it, you should follow certain rules:
     
@@ -128,7 +130,7 @@ To open the "static" directory, use the command:
     <link rel="stylesheet" type="text/css" href="/static/```package_name/index.css">
     ```
 
-- Python files starting with "__" will not be executed using the ```run``` command. Such files are considered auxiliary. The function launched through the ```run``` command must meet certain requirements:
+- Any python files will automatically check during startup for the presence of the ```main``` function and whether it accepts the ```app``` argument. If an error is detected in your file, it will not be launched automatically and information about it will be displayed in the console. If your file does not have a main function, then it is considered auxiliary. The function launched through the ```run``` command must meet certain requirements:
 
     - It should accept the argument "app"
 
