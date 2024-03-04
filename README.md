@@ -80,8 +80,21 @@ United Systems Core is a system designed to simplify the process of creating, ma
 
 
 ## Install
-
+- GIT
+    ```bash
     git clone https://github.com/MrBrain-YT/United-Systems-Core.git
+    ```
+
+- Docker
+    ```bash
+    docker build -t usc .
+    ```
+    <p align="center">and</p>
+    
+    ```bash
+    docker run -t -d usc
+    ```
+
 
 
 ## How to create package
