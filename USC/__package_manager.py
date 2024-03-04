@@ -711,7 +711,7 @@ class PackageManager():
                         call(['attrib', '-H', tmp])
                         break
                     shutil.rmtree(tmp, onerror=self.on_rm_error)
-                    shutil.rmtree(dir_path)
+                    shutil.rmtree(f"{dir_path}/update")
         else:
             # delete update folder
             call(['rm', '-rf', f"{dir_path}/update"])
